@@ -111,9 +111,17 @@ machine-checkable gates.
    the next eligible phase from `docs/progress.html` on its own.
    *Output: a merged phase + updated progress tracking.*
 
-Steps 5–7 form the implementation loop, repeated until every phase is complete.
-The feature loop (step 2) can also be re-entered against a working app, folding
-new features back into the plan docs.
+8. **[`dev-orchestrate`](Development/dev-orchestrate/SKILL.md)** — runs the whole
+   implementation loop autonomously. Preflights the repo and toolchain, then for
+   each incomplete phase launches a planning sub-agent and an execution
+   sub-agent, re-checking machine-verifiable gates itself between every step and
+   stopping hard on any failure. Never implements anything directly. Takes an
+   optional bound (`2`, `through 4`).
+   *Output: completed phases, one merged PR each, plus a final report.*
+
+Steps 5–7 form the implementation loop, repeated until every phase is complete —
+either by hand or run end-to-end by step 8. The feature loop (step 2) can also be
+re-entered against a working app, folding new features back into the plan docs.
 
 ### Core principles
 
@@ -136,7 +144,6 @@ new features back into the plan docs.
 
 ### Not in this repo yet
 
-The infographic shows three skills that aren't published here: `/dev-ui-update`
-(fold a finalized UI/UX design into the MVP plan), `/dev-orchestrate` (run the
-whole implementation loop autonomously behind gates), and `/dev-update-docs`
-(fold a shipped feature back into the living plan docs).
+The infographic shows two skills that aren't published here: `/dev-ui-update`
+(fold a finalized UI/UX design into the MVP plan) and `/dev-update-docs` (fold a
+shipped feature back into the living plan docs).
