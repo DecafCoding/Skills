@@ -7,8 +7,8 @@ documents, and implementation runs one validated task at a time behind
 machine-checkable gates.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../assets/pipeline-dark.png">
-  <img alt="The AI development process pipeline: functional design, UI/UX design, setup, and the automated implementation loop" src="../assets/pipeline-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/pipeline-dark.jpg">
+  <img alt="The AI development process pipeline: functional design, UI/UX design, setup, and the automated implementation loop" src="../assets/pipeline-light.jpg">
 </picture>
 
 ## The pipeline
@@ -102,7 +102,8 @@ features and new designs back into the plan docs.
   task lists; the PRD owns the set of phases; `docs/design-system.html` owns
   design; `docs/progress.html` is a derived index, never hand-authored.
 
-## Not in this repo yet
+## Everything in the infographic is published
 
-The infographic shows one skill that isn't published here: `/dev-update-docs`
-(fold a shipped feature back into the living plan docs).
+The "Update Documents" step in the infographic isn't a separate skill — it's
+handled by `dev-add-feature`, which folds a shipped feature back into the MVP
+plan, PRD, progress file, and competitive scan.
