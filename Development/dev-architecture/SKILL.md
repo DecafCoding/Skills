@@ -1,6 +1,6 @@
 ---
 name: dev-architecture
-description: Run a branch-by-branch architecture interview that turns a settled MVP scope into an agreed technical design written to docs/architecture.html — no code, ever. Settles how the app gets built — language and runtime, storage, architecture pattern, module layout, boundaries, state and failure handling, non-functional targets, deployment and reversibility risk. Runs on a scope-frozen gate — after dev-initial-interview and any pre-build dev-add-feature passes, and before dev-create-prd and dev-plan-phase. Use whenever the user wants to design, decide, review or change the architecture, stack, tech choices, storage, project structure or design patterns for a planned app, including phrasings like "what should I build this in", "pick the stack", "how should this be structured", "what pattern should we use", or "the architecture needs to change for this feature". Also use it when a request would otherwise tempt you to settle a technical design inside a requirements or feature interview.
+description: Run a branch-by-branch architecture interview that turns a settled MVP scope into an agreed technical design at docs/architecture.html — no code, ever. Settles how the app gets built — language, storage, architecture pattern, module layout, boundaries, failure handling, non-functional targets, deployment and reversibility risk. Runs on a scope-frozen gate — after dev-initial-interview and any pre-build dev-add-feature passes, before dev-create-prd and dev-plan-phase. Also runs in amendment mode when the architecture already exists, naming every doc the change made stale and returning to whatever run was paused. Use whenever the user wants to design, decide, review or change the architecture, stack, tech choices, storage, project structure or design patterns — including "what should I build this in", "pick the stack", or "the architecture needs to change for this feature". Also use it when a request would tempt you to settle technical design inside a requirements or feature interview.
 ---
 
 # Dev Architecture
@@ -21,7 +21,7 @@ This skill runs when the MVP in-scope list has stopped changing. Not on a fixed 
 
 - **It does not exist** — stop. There is no scope to design against. Point the user at `dev-initial-interview` and offer to run it.
 - **It exists** — read the Scope section's in-scope checklist (`<li data-checked="true">`), the Constraints section, and the Amendments section at the end.
-- **`docs/architecture.html` already exists** — this is not a fresh run. Go to "Amendment mode" below.
+- **`docs/architecture.html` already exists** — this is not a fresh run. Go to "Amendment mode" below, and establish which of its four entry points brought you here before doing anything else.
 
 **Then check for movement.** Scope is frozen when nothing has moved on or off the in-scope list recently, and the user is not mid-thought about another feature. The Amendments section is the signal: a run of recent entries adding features means scope is still open.
 
@@ -179,7 +179,48 @@ When the file already exists:
 5. **Append an Amendments entry** as a `<p class="meta">` giving the date, which decision slugs changed, what changed, and what caused it, so the history is readable without a diff.
 6. **Re-check the override warning.** An amendment can introduce one where there wasn't one before.
 
+### Note how you got here
+
+Amendment mode has four entry points, and the right closing report depends on which one it was. Establish this at the start, not the end:
+
+1. **`dev-add-feature`** paused a feature interview because the feature did not fit.
+2. **`dev-plan-phase`** could not plan a phase within the settled decisions.
+3. **`dev-orchestrate`** stopped its loop on `ARCHITECTURE-MISFIT`.
+4. **The user asked directly** — "we need to move to Postgres." Nothing is paused.
+
+If it isn't obvious from the conversation, ask. One line, and it changes what you tell them at the end.
+
+### Closing an amendment
+
+**Do not use the fresh-run Next step list below.** It is written for a project that has no PRD yet, and following it after an amendment sends the user to create a document that already exists. An amendment closes differently.
+
+**First, name what is now stale.** An amendment silently invalidates every document that copied the old decision. List them by name, with the changed slugs beside them:
+
+- `docs/prd.html` — its Core Architecture and Technology Stack sections describe the superseded decision. It needs **updating**, not creating.
+- `CLAUDE.md` — this is the one that bites hardest. Every future agent session reads it and inherits the old convention. An amendment that never reaches `CLAUDE.md` is an amendment that does not take effect.
+- `docs/phases/*.html` — any *unstarted* phase doc whose Notes cite a slug you just amended was planned against the old decision. **Grep the Notes sections for the amended slugs and list every phase number you find**, not just the phase that triggered the amendment. Already-merged phases are history; leave them.
+  - **Then add the triggering phase by hand, whether or not a doc exists for it.** When entry point 2 or 3 brought you here, `dev-plan-phase` stopped before writing anything, so the grep cannot find that phase — and a doc left over from an earlier planning pass may cite no slugs at all. Either way it is the one phase guaranteed to need re-planning, and it is the one the grep is guaranteed to miss. Add it explicitly or it falls through every check below.
+- `docs/mvp-plan.html` — only if the amendment changed a constraint recorded in its Constraints section.
+
+**Then give the refresh order**, and say it is not optional:
+
+1. `dev-create-prd` — update the affected sections.
+2. `dev-claud-md` — after the PRD, so the repo's house rules match.
+3. `dev-plan-phase <N>` — **once for every phase number on the stale list above**, not only the one that triggered the amendment. This step must run after step 2: `dev-plan-phase` reads `CLAUDE.md` for its conventions, so re-planning before the house rules are refreshed bakes the superseded decision straight back into the new phase doc.
+4. `dev-create-progress` — last, to rebuild the index from the re-planned phase docs. If it warns that it would clobber `done` or `skipped` marks, stop and show the user the warning rather than forcing it.
+
+If no unstarted phase doc cites an amended slug, say so and skip steps 3 and 4. A short accurate list beats a long defensive one.
+
+**Then return to what was paused**, by entry point:
+
+- **From `dev-add-feature`** — send them back to finish that feature interview, and say explicitly to re-read `docs/architecture.html` first so the interview resumes against the amended decisions. Name the feature so they know which interview.
+- **From `dev-plan-phase`** — nothing extra, *provided you added the blocked phase to the stale list by hand*. Step 3 then re-plans it along with every other affected phase. If you did not add it, it is on no list and nothing re-plans it — go back and add it now rather than mentioning it separately here, so there is one owner for the re-plan and the user does not run it twice.
+- **From `dev-orchestrate`** — the loop stopped and will not resume itself. Tell them to re-run it after the refresh order above completes, or it will plan the next phase from a stale `CLAUDE.md`.
+- **From a direct request** — nothing is paused, so the refresh order *is* the whole of what remains. Say so plainly rather than leaving them wondering what they forgot. This entry point has no interview to remind them, which is exactly why the stale list has to be loud.
+
 ## Next step
+
+**This section is for a fresh run only.** After an amendment, use "Closing an amendment" above instead.
 
 Report every file written, the decision tally by `data-reversible`, any open questions, and the override warning if one applies.
 
