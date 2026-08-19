@@ -156,7 +156,8 @@ The phase branch does not need to exist for planning — the autonomous routine 
 - Read `docs/architecture.html`. It is the authority on stack, storage, architecture pattern, module layout, boundaries, state and failure, non-functional targets and deployment. The PRD summarizes those decisions; the architecture doc *is* them.
 - Verify the plan conforms to every `<h3 class="decision">` the phase touches. Cite the `data-decision` slugs in the plan's NOTES section so the execution agent inherits the constraint.
 - A decision marked `data-status="open"` is not settled. Do not plan tasks that depend on it — surface it to the user instead.
-- If the phase cannot be planned within the settled decisions, stop. Name the slugs that would have to change and their `data-reversible` values, and hand back to `dev-architecture` for an amendment. Do not plan around the architecture.
+- If the phase cannot be planned within the settled decisions, stop and **write no phase doc** — not a stub, not a partial, not a doc with the conflict noted in it. A half-written doc on disk reads as a real plan to every downstream check. Name the slugs that would have to change and their `data-reversible` values, and hand back to `dev-architecture` for an amendment. Do not plan around the architecture.
+- Tell the user which phase number is blocked, and that `dev-architecture` needs it named on the amendment's stale list — nothing on disk records a phase that was never written, so it is the one phase an amendment can silently skip.
 
 **PRD Validation (if PRD exists):**
 - Read PRD at `docs/prd.html`
