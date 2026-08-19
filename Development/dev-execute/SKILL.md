@@ -7,6 +7,12 @@ description: Execute a development plan or phase doc with full task tracking —
 
 This skill completes a phase **end-to-end**: implement → validate → PR → **merge** → sync the default branch → verify. Older phase docs may contain a final task that says to open a PR and *never merge* — that instruction is superseded. Execute the commit/push/PR parts of such a task as written, but merging is now always handled by Step 9 of this skill.
 
+## Unattended runs
+
+When the brief says not to ask the user — including every run launched by `dev-orchestrate` — the "stop and tell the user" instructions below become decisions instead, except where the text says otherwise. Decide using the first source that answers the question: `docs/architecture.html` → the phase doc → `docs/prd.html` → `CLAUDE.md` → the codebase's dominant pattern → the smallest reversible option. Log each one as a `DECISION:` line in the Final Report.
+
+These remain hard stops even unattended, because no source can answer them: `gh` not authenticated; a merge blocked by permissions or a failing required check; a merge conflict in any source, test, config or build file; a red build on the merged default branch; and anything irreversible the docs do not answer (deleting user data, changing repo settings, publishing, force-pushing).
+
 ## Step 1: Determine What to Execute
 
 An argument is optional. Resolve the plan to execute in this order:
@@ -21,14 +27,14 @@ Read `docs/progress.html` and walk the `<section class="phase">` elements in asc
 
 - **`in-progress`** — resume it (some tasks already `done`; pick up the remaining `todo` tasks).
 - **`not-started`** — start it.
-- **`not-planned`** — stop and tell the user to run `/dev-plan-phase <N>` first; there is no phase doc to execute. Do not attempt to execute it.
-- A task carrying a `<blockquote class="blocker">` is not eligible — skip it within the phase, and if every remaining task in the phase is blocked, stop and surface the blocker text to the user.
+- **`not-planned`** — stop and tell the user to run `/dev-plan-phase <N>` first; there is no phase doc to execute. Do not attempt to execute it. *Unattended:* still do not execute it, but return `NEEDS-PLAN: phase <N>` so the orchestrator can launch the planner instead of treating this as a failure.
+- A task carrying a `<blockquote class="blocker">` is not eligible — skip it within the phase, and if every remaining task in the phase is blocked, stop and surface the blocker text to the user. *Unattended:* return the blocker text verbatim as `BLOCKED: <text>` and let the orchestrator classify it; do not clear a blocker yourself.
 
 If every phase is `complete`, report that there is nothing to execute and stop.
 
 Resolve the chosen phase's **phase doc** from its section: the `<p class="meta"><strong>Phase doc:</strong> <code>docs/phases/phase-<N>-<slug>.html</code></p>` line. Read that phase doc — it is the plan for the rest of this skill. Note the phase number `<N>` and slug `<slug>`; you'll need them for the branch name in Step 2.
 
-If `docs/progress.html` does not exist and no explicit plan file was given, stop and ask the user for a plan file path (the project may not use the autonomous-routine flow).
+If `docs/progress.html` does not exist and no explicit plan file was given, stop and ask the user for a plan file path (the project may not use the autonomous-routine flow). *Unattended:* do not ask. If exactly one phase doc under `docs/phases/` is unexecuted, use it and log the choice as a `DECISION:` line. If there are several or none, return `NO-PLAN-RESOLVED` and stop — guessing which plan to build is not a recoverable choice.
 
 The plan (phase doc or plan file) will contain:
 - A list of tasks to implement
@@ -90,7 +96,7 @@ After creating all tasks, reflect them in `docs/progress.html` so it stays the a
 - Use the phase `<section class="phase">` resolved in Step 1 (or, for an ad-hoc plan file, match by phase number/slug). If the plan maps to a phase that has no section yet, prefer re-running `/dev-create-progress` instead of hand-authoring one.
 - For each task created in Step 3, ensure there is a matching `<li class="task" data-task="<X>" data-status="todo">Task <X>: <description></li>` under that phase's `<ul class="tasks">`, in execution order. Add any that are missing; do not duplicate tasks that already exist.
 - Preserve existing state: never clobber tasks already marked `data-status="done"` / `data-status="skipped"` or carrying a `<blockquote class="blocker">`.
-- Keep the task numbering contiguous starting at 1 within the phase, matching the order tasks will be implemented.
+- Keep the task numbering contiguous starting at 1 within the phase, matching the order tasks will be implemented. **When renumbering moves an existing task, carry its state with it by matching on the task's description text, not its number.** A `done`, `skipped`, blocker or cleared note must end up on the same work it started on — inserting a task ahead of a completed one and letting the numbers slide is how a `done` mark lands on work that was never done.
 - If `docs/progress.html` does not exist, note that in the Final Report and skip this step (the project may not use the autonomous-routine flow).
 
 ## Step 5: Codebase Analysis
@@ -153,7 +159,17 @@ Follow the project's `CLAUDE.md` conventions for PR bodies and attribution exact
 
   gh pr merge <pr-number-or-url> --squash --delete-branch
 
-Each phase lands on `<default-branch>` as a single commit; per-task history remains in the closed PR. If the merge fails (conflicts, failing required checks, permissions), **stop**: leave the branch and PR intact, do not retry destructively, and report the exact failure in the Final Report. Do not proceed to 9.4.
+Each phase lands on `<default-branch>` as a single commit; per-task history remains in the closed PR. If the merge fails, sort the failure before you stop:
+
+**Resolve and retry once — do not stop — when the conflict is docs-only.** Run `git fetch origin && git merge origin/<default-branch>` on the phase branch and inspect the conflicted paths. If *every* conflicted path is under `docs/` (or is `README.md`), resolve them yourself and retry the merge once:
+
+- `docs/progress.html` — keep both sides' progress. Any task marked `done` or `skipped` on either side stays marked; any `<blockquote class="blocker">` on either side stays. Never resolve by dropping completed state.
+- `docs/phases/*.html` — the phase branch wins for this phase's own doc; the default branch wins for every other phase's doc.
+- `README.md` and any other `docs/` file — keep both sides' content, ours then theirs, dropping only exact duplicate lines.
+
+Then commit the resolution, push, and re-run `gh pr merge --squash --delete-branch`. Record it in the Final Report as `MERGE-CONFLICT-RESOLVED: <paths>`.
+
+**Stop** in every other case — a conflict touching any source, test, config or build file; a failing required check; a permissions error; or a docs-only retry that fails a second time. Leave the branch and PR intact, do not retry destructively, and report the exact failure in the Final Report. Do not proceed to 9.4.
 
 **9.4 Sync and clean up** — Return to the default branch and remove the local phase branch:
 
