@@ -1,6 +1,6 @@
 ---
 name: dev-create-prd
-description: Generate a comprehensive Product Requirements Document (PRD) as a standalone HTML file (docs/prd.html) from a source document, folder of documents, or conversation context. Use whenever the user wants to create a PRD, product requirements doc, requirements document, or turn a design doc, feature brief, brainstorm, or meeting notes into structured product requirements — especially as the first step of the PRD → dev-plan-phase → dev-create-progress → dev-execute pipeline. The output follows a strict HTML contract that downstream tooling (plan-phase, create-progress) parses.
+description: Generate a comprehensive Product Requirements Document (PRD) as a standalone HTML file (docs/prd.html) from a source document, folder of documents, or conversation context. Use whenever the user wants to create a PRD, product requirements doc, requirements document, or turn a design doc, feature brief, brainstorm, or meeting notes into structured product requirements — especially as the first step of the PRD → dev-plan-phase → dev-create-progress → dev-execute pipeline. Reads the companion planning docs when they exist and cites them rather than re-deciding — docs/architecture.html owns the stack, pattern and deployment, docs/mvp-plan.html owns scope and users, docs/design-system.html owns everything visual. The output follows a strict HTML contract that downstream tooling (plan-phase, create-progress) parses.
 ---
 
 # Create PRD: Generate Product Requirements Document
@@ -49,6 +49,23 @@ Evaluate the source document against these criteria. For each, note whether the 
 - **Sufficient:** All three required criteria are clearly addressed. Proceed to PRD generation. Report the assessment table to the user and note any gaps you will fill with reasonable assumptions.
 - **Partially sufficient:** One or two required criteria are weak or vague. Report the assessment table and ask the user targeted questions to fill the gaps. Do not generate the PRD until the user responds.
 - **Insufficient:** The document is missing most required criteria (e.g., it is a raw brainstorm with no clear problem, audience, or feature description). Report the assessment table, explain what is missing, and ask the user to either provide a more complete document or answer the gap questions directly. Do not generate the PRD.
+
+### Companion Planning Docs
+
+Before generating, check `docs/` for the siblings this pipeline produces. When one exists it **outranks the source material** on the topics it owns, and the PRD cites it instead of re-deciding it.
+
+| File | Written by | Owns | PRD's job |
+|---|---|---|---|
+| `docs/architecture.html` | `dev-architecture` | Stack, storage, pattern, module layout, boundaries, state and failure, non-functional, deployment | Summarize and link. Never re-decide. |
+| `docs/mvp-plan.html` | `dev-initial-interview` | Problem, users, core loop, scope, data model, interfaces | Source of truth for scope and users. |
+| `docs/design-system.html` | `dev-ui-update` | Everything visual | Link from UX sections; do not restate tokens. |
+| `docs/feature-*.html` | `dev-add-feature` | Individual feature specs | Link per feature. |
+
+**If `docs/architecture.html` exists**, read it in full before writing sections 5 and 7. Every `<h3 class="decision">` in it is settled. The PRD records those decisions; it does not revisit them, soften them, or add alternatives beside them.
+
+**If it does not exist**, sections 5 and 7 fall back to the source material as before — but say so in your report, and recommend `dev-architecture` if the project is going to be built rather than just described. A PRD that invents a stack the user never agreed to is the failure this check exists to prevent.
+
+**On conflict** — the source document says one thing and `docs/architecture.html` says another — stop and surface it. Do not silently pick. The architecture doc is newer and was agreed branch by branch, so it usually wins, but the user decides.
 
 ## Output File
 
@@ -136,10 +153,12 @@ Create a well-structured PRD with the following sections, each as an `<h2>`. Ada
 - Add technical user stories if relevant
 
 **5. Core Architecture & Patterns**
-- High-level architecture approach
-- Directory structure (if applicable)
-- Key design patterns and principles
-- Technology-specific patterns
+- **If `docs/architecture.html` exists, this section is a summary with a link — not a decision.** Open with a one-line pointer: *"Architecture is settled in [architecture.html](architecture.html); this section summarizes it."* Then restate only the pattern, the module layout, and the import direction rule, each traceable to a `data-decision` slug in that file. Do not add patterns, principles, or structure it does not contain.
+- If it does not exist, cover these from the source material, and flag in your report that the architecture was inferred rather than agreed:
+  - High-level architecture approach
+  - Directory structure (if applicable)
+  - Key design patterns and principles
+  - Technology-specific patterns
 
 **6. Tools/Features**
 - Detailed feature specifications
@@ -147,16 +166,19 @@ Create a well-structured PRD with the following sections, each as an `<h2>`. Ada
 - If building an app: Core feature breakdown
 
 **7. Technology Stack**
-- Backend/Frontend technologies with versions
-- Dependencies and libraries
-- Optional dependencies
-- Third-party integrations
+- **If `docs/architecture.html` exists, copy its decisions verbatim and link.** Stack, storage engine and deployment target come from the Stack, Storage and Deployment sections of that file. Adding a library it does not name, or a version it does not state, creates a second source of truth — do not.
+- If it does not exist, cover these from the source material:
+  - Backend/Frontend technologies with versions
+  - Dependencies and libraries
+  - Optional dependencies
+  - Third-party integrations
 
 **8. Security & Configuration**
 - Authentication/authorization approach
 - Configuration management (environment variables, settings)
 - Security scope (in-scope and out-of-scope)
 - Deployment considerations
+- When `docs/architecture.html` exists, its Deployment and Non-functional sections own the deployment target, environments, secrets mechanism and security posture. Summarize and link; do not restate them differently here.
 
 **9. API Specification** (if applicable)
 - Endpoint definitions

@@ -1,6 +1,6 @@
 ---
 name: dev-plan-phase
-description: Create a comprehensive phase plan doc (docs/phases/phase-{N}-{slug}.html) from a PRD phase, with deep codebase analysis and external research — the doc the autonomous routine or execute skill implements one task at a time. Use whenever the user says to plan a phase, plan phase N, create a phase doc/plan, or prepare implementation plans in a project using the PRD → dev-plan-phase → create-progress → execute pipeline. This skill is the slug and task authority — it picks the phase slug, branch name, and canonical task list, and never writes implementation code itself.
+description: Create a comprehensive phase plan doc (docs/phases/phase-{N}-{slug}.html) from a PRD phase, with deep codebase analysis and external research — the doc the autonomous routine or execute skill implements one task at a time. Use whenever the user says to plan a phase, plan phase N, create a phase doc/plan, or prepare implementation plans in a project using the PRD → dev-plan-phase → create-progress → execute pipeline. This skill is the slug and task authority — it picks the phase slug, branch name, and canonical task list, and never writes implementation code itself. It conforms to the settled architecture at docs/architecture.html rather than making technical decisions of its own, and hands back to dev-architecture when a phase cannot be planned within it.
 ---
 
 # Plan a phase
@@ -15,7 +15,7 @@ Transform a phase definition (drawn from `docs/prd.html`'s Implementation Phases
 
 This skill is the **slug and task authority** for the phase. It decides the kebab-case slug, picks the branch name (`phase-<N>-<slug>`), and authors the canonical task list. Downstream, `/dev-create-progress` reads every phase doc under `docs/phases/` and aggregates the metadata + tasks into `docs/progress.html` — `progress.html` is a derived index, not an input. Run `/dev-plan-phase` for each phase before running `/dev-create-progress`.
 
-Review `docs/prd.html` to identify the phase's scope and dependencies before planning.
+Review `docs/prd.html` to identify the phase's scope and dependencies before planning. Where `docs/architecture.html` exists, read it too — it is the authority for every technical decision the phase must conform to, and this skill conforms rather than deciding (see "Architecture Validation" in Step 4).
 
 **Core Principle**: We do NOT write code in this skill. The goal is to produce a context-rich phase doc that enables one-pass implementation success for the execution agent (whether `/dev-execute` or the autonomous routine).
 
@@ -106,7 +106,7 @@ The phase branch does not need to exist for planning — the autonomous routine 
 
 - If requirements are unclear at this point, ask the user to clarify **before you continue planning**
 - Get specific implementation preferences (libraries, approaches, patterns)
-- Resolve architectural decisions before proceeding
+- Resolve architectural decisions before proceeding — but **do not settle them yourself when `docs/architecture.html` exists**. That file is the authority; read it and conform. If the phase genuinely cannot be planned within it, stop and hand back to `dev-architecture` for an amendment rather than deciding here. A phase doc that quietly contradicts the architecture is how an autonomous run builds the wrong thing without anyone noticing.
 - **Critical for unattended execution:** the generated plan must contain **zero** "ask the user" or "confirm with user" steps inside tasks. An autonomous execution agent has no user to ask. Every ambiguity must be either (a) resolved with the user *now*, before the plan is written, or (b) decided by you with a clear default and documented in the NOTES section as an assumption the implementation will follow. If you cannot resolve an ambiguity either way, surface it to the user before generating the plan rather than embedding it in a task.
 
 ### Step 3: External Research & Documentation
@@ -152,10 +152,16 @@ The phase branch does not need to exist for planning — the autonomous routine 
 - Plan for backward compatibility if needed
 - Consider scalability implications
 
+**Architecture Validation (if `docs/architecture.html` exists) — do this first:**
+- Read `docs/architecture.html`. It is the authority on stack, storage, architecture pattern, module layout, boundaries, state and failure, non-functional targets and deployment. The PRD summarizes those decisions; the architecture doc *is* them.
+- Verify the plan conforms to every `<h3 class="decision">` the phase touches. Cite the `data-decision` slugs in the plan's NOTES section so the execution agent inherits the constraint.
+- A decision marked `data-status="open"` is not settled. Do not plan tasks that depend on it — surface it to the user instead.
+- If the phase cannot be planned within the settled decisions, stop. Name the slugs that would have to change and their `data-reversible` values, and hand back to `dev-architecture` for an amendment. Do not plan around the architecture.
+
 **PRD Validation (if PRD exists):**
 - Read PRD at `docs/prd.html`
-- Verify plan preserves architectural patterns defined in PRD
-- Validate against any architectural principles or design constraints in PRD
+- Verify plan preserves architectural patterns defined in the PRD — and where the PRD and `docs/architecture.html` disagree, the architecture doc wins. Flag the disagreement to the user; it means the PRD is stale.
+- Validate against any architectural principles or design constraints in the PRD that the architecture doc does not cover
 
 ### Step 5: Plan Structure Generation
 

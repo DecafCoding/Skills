@@ -1,6 +1,6 @@
 ---
 name: dev-claud-md
-description: Generate a project-specific CLAUDE.md guidance file from the project's PRD (docs/prd.html) and, when it exists, the repository itself. Use whenever the user wants to create, regenerate, refresh, or fix the CLAUDE.md / project guidance / agent instructions file for a repo — including phrasings like "write the CLAUDE.md", "set up Claude Code for this project", "the agent keeps forgetting our conventions", or "give this repo its house rules". Also use it right after a PRD is created and before the first phase is executed in the PRD to dev-plan-phase to dev-create-progress to dev-execute pipeline, so every downstream agent run inherits the same conventions. Stack-adaptive — emits a .NET/C# profile by default and equivalent profiles for other stacks.
+description: Generate a project-specific CLAUDE.md guidance file from the project's settled architecture (docs/architecture.html), its PRD (docs/prd.html) and, when it exists, the repository itself. Prefers docs/architecture.html over the PRD and over its own .NET/Vertical Slice house default for stack, pattern, layout and deployment, so an agreed architecture is never silently overwritten by a default. Use whenever the user wants to create, regenerate, refresh, or fix the CLAUDE.md / project guidance / agent instructions file for a repo — including phrasings like "write the CLAUDE.md", "set up Claude Code for this project", "the agent keeps forgetting our conventions", or "give this repo its house rules". Also use it right after a PRD is created and before the first phase is executed in the PRD to dev-plan-phase to dev-create-progress to dev-execute pipeline, so every downstream agent run inherits the same conventions. Stack-adaptive — emits a .NET/C# profile by default and equivalent profiles for other stacks.
 ---
 
 # Create CLAUDE.md: Project Guidance For Coding Agents
@@ -36,6 +36,25 @@ Read the PRD in full. Extract:
 | Directory structure | Repository Location & Layout |
 | Testing approach | Testing |
 
+### Read The Architecture Doc First, When It Exists
+
+Check for `docs/architecture.html` before the PRD. When `dev-architecture` has run, that file — not the PRD — is the authority on stack, storage, architecture pattern, module layout, boundaries, state and failure, non-functional targets and deployment. The PRD summarizes it; a summary is not the source.
+
+Read every `<h3 class="decision">` and take its `data-decision` slug, `data-status` and `data-reversible`. Then:
+
+| What To Extract | Where It Lands In CLAUDE.md |
+|---|---|
+| Stack | Stack profile selection, Build & Test |
+| Architecture pattern, Module layout | Architecture, Key Patterns |
+| Boundaries, State and failure | Key Patterns |
+| Deployment, Non-functional | Configuration, Authentication |
+
+**This overrides the house default in Step 1.** The .NET / Vertical Slice default exists for projects that never ran `dev-architecture`. When the file exists and names something else, the file wins — silently defaulting over an agreed decision is the one failure this check prevents. Say in your closing summary which source you used.
+
+A decision with `data-status="open"` is not settled. Do not write it into CLAUDE.md as though it were; leave the section out and name it in the closing summary.
+
+If `docs/architecture.html` does not exist, carry on with the PRD as before.
+
 ### Scan The Repository (When One Exists)
 
 If the working directory is a repo, verify the PRD's claims against it. Look for, as applicable to the stack: solution/project files, `package.json`, `pyproject.toml`/`requirements.txt`, `go.mod`, `Cargo.toml`, `Makefile`, `launchSettings.json`, `appsettings.json`, `.env.example`, `docker-compose.yml`, the test directory, and any existing `CLAUDE.md`.
@@ -50,9 +69,9 @@ If the output file already exists, read it first. Preserve any hand-written cont
 
 ## Step 1: Pick The Stack Profile
 
-Choose from the PRD's Technology Stack section, confirmed against the repo:
+Choose in this order of authority: `docs/architecture.html` first, then the PRD's Technology Stack section, then the repo. Where they disagree, prefer the higher authority and name the disagreement in your closing summary — except against the repo, where observed reality still wins for anything already built.
 
-- **.NET / C#** — the default and richest profile. Use it whenever the PRD names .NET, ASP.NET Core, Blazor, WPF, MAUI, or EF Core.
+- **.NET / C#** — the default and richest profile. Use it whenever `docs/architecture.html` or the PRD names .NET, ASP.NET Core, Blazor, WPF, MAUI, or EF Core — and as the fallback when neither source states a stack at all.
 - **Python**, **Node / TypeScript**, **Go**, **Rust**, **other** — emit the same *sections*, with the stack's own commands and conventions substituted (see "Stack Profiles" below).
 
 If the project is genuinely polyglot (for example, a .NET API plus a React front end), emit one Build & Test subsection per component rather than averaging them into something true of neither.
@@ -224,7 +243,7 @@ Every profile emits the same sections; only the specifics change.
 
 - **Build & Test:** `dotnet build`, `dotnet test`, `dotnet run --project {name}`, `dotnet format`. Note the solution file (`.sln` or `.slnx`) explicitly.
 - **Migrations:** EF Core `dotnet ef migrations add` / `dotnet ef database update`. **If more than one `DbContext` exists, every command must pass `--context` — call this out as a foot-gun.** Note whether `Database.Migrate()` runs at startup.
-- **Architecture default:** Vertical Slice — organize by feature under `Features/{FeatureName}/`, keeping endpoint/page, handler, models, and validation together. Extract to `Shared/` only for genuine cross-cutting concerns, never prematurely.
+- **Architecture default:** Vertical Slice — organize by feature under `Features/{FeatureName}/`, keeping endpoint/page, handler, models, and validation together. Extract to `Shared/` only for genuine cross-cutting concerns, never prematurely. **This is a default, not an override.** If `docs/architecture.html` settled a different pattern or layout, use that one and say so in the closing summary.
 - **DI:** thread-safe clients singleton; API clients as typed `HttpClient` via `AddHttpClient<>`; handlers and `DbContext` scoped; pure helpers `static`. Always include the captive-dependency warning.
 - **Config:** `appsettings.json` bound to a typed options class; `dotnet user-secrets set` for secrets; `SECTION__KEY` env-var equivalents; `ConnectionStrings:DefaultConnection`.
 - **UI:** Blazor apps use **Bootstrap** for styling and layout — grid, components, and utilities — rather than another CSS framework or hand-rolled CSS.
@@ -270,13 +289,15 @@ After writing the file:
 
 1. Confirm the path written.
 2. List the sections included and the sections deleted as not applicable.
-3. Report any PRD-versus-repo discrepancies found, and which one you wrote.
-4. Note assumptions made where the PRD was silent.
-5. Suggest next steps — typically `/dev-plan-phase` for the next phase, so the phase work runs under these conventions.
+3. Report any discrepancies found between `docs/architecture.html`, the PRD, and the repo — and which one you wrote.
+4. State plainly which source the stack and pattern came from: `docs/architecture.html`, the PRD, or the house default. If the default was used because no architecture doc exists, say so and mention `dev-architecture`.
+5. Note assumptions made where the sources were silent, and any decision left out because it was `data-status="open"`.
+6. Suggest next steps — typically `/dev-plan-phase` for the next phase, so the phase work runs under these conventions.
 
 ## Notes
 
 - Written **before** the first `/dev-execute` run wherever possible; every agent session afterward inherits the conventions.
 - Re-run it after a phase that meaningfully changes the architecture, adds a second database context, or introduces a new component to the stack.
-- The PRD is the source of intent; the repo is the source of truth. When they disagree, write the repo and say so.
+- Authority order for technical decisions: `docs/architecture.html` beats the PRD, and the repo beats both for anything already built. Architecture is the source of decision, the PRD is the source of intent, the repo is the source of truth. When they disagree, write the repo and say so.
+- Re-run it after `dev-architecture` lands an amendment — an amended decision that never reaches `CLAUDE.md` means every later agent session works from the superseded convention.
 - This skill writes only `CLAUDE.md`. It never writes application code, tests, or migrations.
