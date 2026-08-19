@@ -1,6 +1,6 @@
 ---
 name: dev-add-feature
-description: Run a relentless, branch-by-branch interview that turns a rough feature idea into a complete integration plan for an existing app — grounded in the current plan, the repo, and any prior competitive scan at docs/competitive-scan.html — then folds the agreed feature back into whichever plan docs exist (docs/mvp-plan.html, docs/prd.html, docs/progress.html, docs/competitive-scan.html). Never writes code. Use this whenever the user wants to add, extend, bolt on, "think through," or decide what to build next for something that already exists or is already planned, even if they never say the word "interview." Companion to dev-initial-interview, which covers net-new applications; use dev-add-feature instead once there is an existing plan or codebase to fit into.
+description: Run a relentless, branch-by-branch interview that turns a rough feature idea into a complete integration plan for an existing app — grounded in the current plan, the settled architecture at docs/architecture.html, the repo, and any prior competitive scan at docs/competitive-scan.html. Checks the feature against the architecture rather than redesigning it, and hands back to dev-architecture for an amendment when the feature does not fit. Then folds the agreed feature back into whichever plan docs exist (docs/mvp-plan.html, docs/prd.html, docs/progress.html, docs/competitive-scan.html). Never writes code. Use this whenever the user wants to add, extend, bolt on, "think through," or decide what to build next for something that already exists or is already planned, even if they never say the word "interview." Companion to dev-initial-interview, which covers net-new applications; use dev-add-feature instead once there is an existing plan or codebase to fit into.
 ---
 
 # Dev Add Feature
@@ -17,8 +17,9 @@ Before asking anything, read the ground truth. Do not skip this — the value of
 
 1. **The plan** — locate and read the existing planning docs: `docs/mvp-plan.html`, `docs/prd.html`, phase docs under `docs/phases/`, `docs/progress.html`, README, or whatever the user points at. If the app exists only as a plan, that plan *is* the ground truth. **Note which of these exist** — you will need that list again at the end, when the plan docs get updated to include this feature.
 2. **The competitive scan** — check for `docs/competitive-scan.html`. If `dev-initial-interview` ran, this holds the Required / Top 10 / Other buckets with a coverage badge on every row. Read it; it's the backlog this feature may already be sitting in, and the badges say what is already built.
-3. **The repo** — if there is code, survey it: entry points, module layout, data model / migrations, routing or command surface, config, tests. Read the parts the feature will plausibly touch. Don't read everything; read enough to ask sharp questions.
-4. **Conventions** — how this codebase already does the thing the feature needs (persistence, auth, background work, error handling, UI composition). New features should follow existing patterns unless there's a reason not to.
+3. **The architecture** — check for `docs/architecture.html`. If `dev-architecture` ran, this is the settled technical design: stack, storage, pattern, module layout, boundaries, state and failure, non-functional, deployment. Read it in full. Every `<h3 class="decision">` in it is a constraint this feature must fit, and `data-reversible` tells you what a misfit would cost to undo. It is the authority for branch 7.
+4. **The repo** — if there is code, survey it: entry points, module layout, data model / migrations, routing or command surface, config, tests. Read the parts the feature will plausibly touch. Don't read everything; read enough to ask sharp questions.
+5. **Conventions** — how this codebase already does the thing the feature needs (persistence, auth, background work, error handling, UI composition). New features should follow existing patterns unless there's a reason not to. Where the repo and `docs/architecture.html` disagree, say so — one of them is wrong, and which one is a question for the user, not a guess for you.
 
 Then open with a short grounding summary — no more than a handful of lines: what you understand the app to be, which parts this feature likely touches, and the two or three biggest unknowns. Confirm it before interviewing.
 
@@ -48,7 +49,7 @@ Typical branch order, adapted to the domain:
 4. **Blast radius** — every existing module, table, endpoint, screen, and job this touches; what breaks if it's wrong
 5. **Data model changes** — new entities, changed entities, migrations, backfill, rollback
 6. **Interfaces** — new or changed surfaces, inputs, outputs, and the contract with existing ones
-7. **Architecture fit** — reuse vs. new component, dependencies added, conformance to existing conventions
+7. **Architecture fit** — reuse vs. new component, dependencies added, conformance to existing conventions. When `docs/architecture.html` exists this branch *checks* against it rather than deciding — see "The architecture handoff" below
 8. **State and failure** — persistence, concurrency, partial failure, recovery, interaction with existing state
 9. **Compatibility** — backward compatibility, existing data, existing users, feature flagging, staged rollout
 10. **Non-functional** — performance impact on existing paths, security, privacy, cost delta
@@ -57,6 +58,25 @@ Typical branch order, adapted to the domain:
 13. **Done criteria** — how you both know the feature is finished
 
 Push on vagueness. "It should be fast" is not an answer; "sub-200ms on a 10k-row table" is. When an answer contradicts an earlier one — or contradicts the existing plan or code — surface the conflict immediately rather than carrying it forward.
+
+## The architecture handoff
+
+When `docs/architecture.html` exists, this skill does not decide architecture. It decides whether the feature fits the architecture that is already agreed. Branch 7 has exactly three possible outcomes, and you must land on one of them out loud.
+
+**1. It fits.** The feature uses the existing pattern, layout, storage and boundaries as they stand. Note which `data-decision` slugs it leans on and move to branch 8. Nothing else to do.
+
+**2. It fits with a local exception.** The feature needs one narrow departure — an extra library, a new table shape, a background worker where none existed. Record it in the feature brief as an exception, name the decision slug it departs from, and say plainly what would need to change if the exception ever became the rule. Do not edit `docs/architecture.html` for a one-off.
+
+**3. It does not fit.** The feature needs a decision in `docs/architecture.html` to change — a different storage engine, a new boundary, a pattern the layout can't express, a non-functional target the current design can't hit. **Stop the interview here.** Do not design the replacement yourself, and do not carry on to branches 8 through 13 as if the foundation were settled.
+
+For outcome 3, do this:
+
+- Name the decision slugs that would have to change, and their `data-reversible` values. `expensive` is the number that should make both of you slow down.
+- Tell the user the feature requires an architecture change, and offer `dev-architecture` in amendment mode. It reads the existing file, changes only the affected decisions, and logs the amendment.
+- Offer the alternative in the same breath: a narrower version of the feature that fits the current architecture. Often that is the better trade, and the user cannot weigh it unless you put it beside the amendment.
+- Resume this interview once the amendment lands, re-reading `docs/architecture.html` first.
+
+**Branches 8 and 10 stay feature-local.** State and failure, and non-functional, are asked here only about *this feature's* impact — what it adds to existing paths. The system-wide targets belong to `docs/architecture.html`. If answering one of these would change a system-wide target, that is outcome 3, not a branch 8 answer.
 
 ## Question format
 
@@ -99,7 +119,7 @@ Body sections, as semantic HTML:
 4. Blast radius — the concrete list of touched components
 5. Data model changes and migration/rollback approach
 6. Interfaces and contracts
-7. Architecture decisions, with the reasoning kept
+7. Architecture fit — which of the three outcomes this landed on, the `data-decision` slugs the feature leans on, any local exception and what it departs from, and the reasoning kept. If an amendment to `docs/architecture.html` was needed, name it and the date it landed rather than restating the new decision here
 8. Compatibility and rollout
 9. Testing and regression plan
 10. Build plan — ordered tasks and where they land in the existing phase plan
@@ -158,6 +178,13 @@ Three standing rules, inherited from `dev-initial-interview`:
 
 If a row you just marked sits in the Required bucket, check whether the MVP now meets the rest of that bucket. A table stake still carrying `b-part` or `b-no` is worth naming in the final report.
 
-**5. Report what changed.** Close with a short list: every file touched, the one-line change in each, and the next command — normally `dev-plan-phase <N>` to turn the new phase into implementation tasks. If a doc was missing, say which one and what didn't get updated because of it.
+**5. `docs/architecture.html`, if it exists — do not edit it here.**
+
+This skill never writes to the architecture doc. It is owned by `dev-architecture`, and a feature interview editing it is how the two skills end up disagreeing.
+
+- **Outcome 1 or 2** (fits, or fits with a local exception) — nothing to do. The exception lives in the feature brief, not in the architecture.
+- **Outcome 3** (needs an amendment) — the amendment was made by `dev-architecture` before this interview resumed. Confirm the Amendments entry is there and dated, and reference it from the feature brief. If it is missing, the amendment never landed; stop and say so.
+
+**6. Report what changed.** Close with a short list: every file touched, the one-line change in each, which architecture-fit outcome the feature landed on, and the next command — normally `dev-plan-phase <N>` to turn the new phase into implementation tasks. If a doc was missing, say which one and what didn't get updated because of it.
 
 Still no code.
