@@ -13,7 +13,7 @@ This skill is **purely mechanical**. It makes no design decisions. The phase doc
 
 Both the phase docs and the PRD are **standalone HTML documents** with a fixed, parseable shape (see `/dev-plan-phase` and `/dev-create-prd` for the contracts). Parse those shapes — do not interpret prose.
 
-Phases listed in the PRD but without a phase doc are still emitted to `progress.html` with `data-status="not-planned"` and no Tasks list. The autonomous routine treats `not-planned` as a stop condition: it writes a blocker (`<blockquote class="blocker">phase needs a plan — run /dev-plan-phase &lt;N&gt;</blockquote>`) and stops. This keeps `progress.html` a complete index of the project's phase pipeline rather than a partial view of just-the-planned-ones.
+Phases listed in the PRD but without a phase doc are still emitted to `progress.html` with `data-status="not-planned"` and no Tasks list. The autonomous routine treats `not-planned` as work to do, not a stop: `dev-orchestrate` launches `/dev-plan-phase <N>` for it and then re-runs this skill. Emit no blocker for a merely unplanned phase — a blocker there would be read by a later run as a reason to halt. This keeps `progress.html` a complete index of the project's phase pipeline rather than a partial view of just-the-planned-ones.
 
 ## Arguments
 
@@ -64,6 +64,8 @@ For each *planned* phase (phase doc exists), extract by parsing the HTML:
 
 **Task numbering check**: tasks must be numbered contiguously starting at 1 within each phase (read from `data-task`). If you find a gap or a duplicate, stop and report the inconsistency — don't paper over it. The user needs to fix the phase doc.
 
+*Unattended runs* (launched by `dev-orchestrate`, or briefed not to ask the user) **do not stop for this.** Renumber instead: keep the tasks in document order, assign contiguous numbers from 1, and preserve each task's existing `data-status` and any `<blockquote class="blocker">` by matching on the task's description text rather than its old number. Report every renumbered task in the run summary as `RENUMBERED: phase <N> task <old> → <new>`. If two tasks share both a number *and* a description, they are a duplicate — but check the existing `progress.html` before dropping either one. If neither copy carries `done`, `skipped`, a blocker or a cleared note, drop the second and report `DROPPED-DUPLICATE`. If either copy carries any of those, drop nothing: keep both, renumber them apart, carry the state onto the copy that had it, and report `DUPLICATE-KEPT` with both numbers. Never let de-duplication be the thing that deletes a completed task.
+
 **Slug consistency check**: the slug in the filename should not be contradicted elsewhere in the doc. Trust the filename — it's what the autonomous routine resolves against.
 
 ## Step 2: Check overwrite safety
@@ -74,7 +76,18 @@ Read the existing `output-path` if it exists. Compare phase metadata (numbers + 
 - **Existing file with the same phases and slugs**: regenerate (the user is expected to re-run this whenever phase docs change).
 - **Existing file with different phases or slugs**, or with tasks whose status is not `todo` that wouldn't be preserved: stop and ask the user. Specifically warn if regenerating would clobber `data-status="done"` / `data-status="skipped"` marks or `<blockquote class="blocker">` lines.
 
-When regenerating to preserve state, lift each task's `data-status` value (`done` / `skipped`) and any `<blockquote class="blocker">` onto matching tasks (matched by phase number + task number) in the freshly rendered output. If a previously-tracked task no longer exists in the phase doc, leave a one-line note in the user-facing report so they can verify the deletion was intentional.
+  *Unattended runs* (launched by `dev-orchestrate`, or briefed not to ask the user) **do not stop here.** Merge instead, never overwrite, under these rules:
+  - The phase docs on disk are the authority for which phases and slugs exist. A phase in the old file with no phase doc is kept as-is; it is not deleted.
+  - Carry every `data-status="done"` / `"skipped"` and every `<blockquote class="blocker">` forward onto the matching task (match by phase number + task description text; fall back to task number).
+  - A slug changed in the phase doc wins, but the old slug is recorded in the summary — a phase branch may already exist under the old name.
+  - If merging would lose a `done`/`skipped` mark or a blocker that has no match in the new output, **that one is a real stop**: do not write the file, and report exactly which marks would be lost. Losing completed work silently is worse than stopping.
+  - Report every merge decision in the run summary as `MERGED:` lines.
+
+When regenerating to preserve state, lift each task's `data-status` value (`done` / `skipped`) and any `<blockquote class="blocker">` onto matching tasks in the freshly rendered output. **Match on phase number + task description text first, and only fall back to the task number when no description matches** — task numbers move when a phase doc is edited or renumbered, and matching on a moved number silently attaches a `done` mark to the wrong work.
+
+A `<blockquote class="cleared">` is not a blocker — it is the demoted record of one that `dev-orchestrate` resolved. Carry it forward exactly like a blocker (same matching rules, never dropped), but never treat it as making a task ineligible, and never promote it back to `class="blocker"`.
+
+If a previously-tracked task no longer exists in the phase doc: when it was plain `todo` with no blockquote of any kind, drop it and leave a one-line note in the report so the user can verify the deletion was intentional. When it carried `done`, `skipped`, a blocker, or a cleared note, **do not drop it** — carry it into the output marked as-is with a note that its phase doc entry is gone, or, if that is impossible, stop and report it. Completed work is never deleted to make a regeneration tidy.
 
 ## Step 3: Render `progress.html`
 
@@ -143,7 +156,7 @@ The routine's edits are in-place attribute/blockquote changes (`data-status="tod
   <li><code>not-started</code> — phase doc exists, no tasks done yet</li>
   <li><code>in-progress</code> — at least one task done, others outstanding</li>
   <li><code>complete</code> — every task in the phase is <code>done</code></li>
-  <li><code>not-planned</code> — phase listed in PRD but has no phase doc; the routine writes a blocker and stops on this phase until <code>/dev-plan-phase &lt;N&gt;</code> is run</li>
+  <li><code>not-planned</code> — phase listed in PRD but has no phase doc; the routine plans it by running <code>/dev-plan-phase &lt;N&gt;</code> before executing it</li>
 </ul>
 
 <h2>Task statuses (<code>li.task[data-status]</code>)</h2>
@@ -217,5 +230,5 @@ Notes on rendering:
 - [ ] Each task is a `<li class="task" data-task="<X>" data-status="todo|done|skipped">`
 - [ ] Branch names match `phase-<N>-<slug>` exactly
 - [ ] Task numbers are contiguous starting at 1 per phase, and match `data-task` in the phase doc
-- [ ] Existing completion state (`done`, `skipped`, `blockquote.blocker`) is preserved across regeneration when phase + task numbers still match
-- [ ] No phase metadata is inferred or invented — if a field is missing from the phase doc, report it and stop rather than guess
+- [ ] Existing completion state (`done`, `skipped`, `blockquote.blocker`) is preserved across regeneration, matched on phase number + task description text with the task number as fallback only — never lost, never moved onto a different task
+- [ ] No phase metadata is inferred or invented — if a field is missing from the phase doc, report it and stop rather than guess. *Unattended runs derive it instead of stopping*, using only mechanical sources — never invention: **slug** from the phase-doc filename; **branch** as `phase-<N>-<slug>`; **phase name** from the `<h1>` heading; **summary** from the first sentence of the Phase Description, or the phase name if that is absent; **dependencies** as "none". Anything still unresolved after that (for example, no `<h1>` at all) is a malformed phase doc and **is** a stop — return `MALFORMED-PHASE-DOC: <path> — <what is missing>` so the caller knows re-running this skill will not help; the phase doc itself has to be rewritten. Report each derived field in the run summary as `DERIVED: <field> = <value> (from <source>)`.

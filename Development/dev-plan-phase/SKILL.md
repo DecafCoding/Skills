@@ -80,7 +80,8 @@ Choose a kebab-case slug for this phase. This is *the* authoritative slug — `/
 - Lowercase ASCII, words separated by `-`, no trailing punctuation.
 - Aim for ≤ 20 chars, ideally 1–2 words. Drop parenthetical qualifiers from the PRD's phase name.
 - Examples: "Skeleton" → `skeleton`, "Discovery round" → `discovery`, "Transcript worker (Q1: Apify)" → `transcript-worker`, "Polish and packaging" → `packaging`.
-- Verify the slug doesn't collide with another phase doc already in `docs/phases/`.
+- Verify the slug doesn't collide with another phase doc already in `docs/phases/`. On a collision with a **different** phase number, pick a more specific slug — never overwrite another phase's doc.
+- **Never overwrite an existing phase doc for this same phase.** If `docs/phases/phase-<N>-*.html` already exists, that phase is planned: an authored plan may hold hours of decisions and may already be partly executed. Interactive runs ask before replacing it. Unattended runs do not replace it — return `ALREADY-PLANNED: <path>` and stop. Re-planning is a user's call. The one exception: a brief containing `REPLAN-AUTHORIZED` suspends this rule for that phase only, because the caller has already set the old doc aside; plan the phase normally and note the authorization in the doc's Notes.
 
 Then verify you are on an appropriate branch — either the default branch (main or master) or the phase branch for the phase being planned. The branch name must match `phase-<N>-<slug>` using the slug you just chose. This is the same branch the autonomous routine will look for on origin — if the slug here diverges from the phase doc filename, the routine will create a separate branch and the manual planning work will be stranded.
 
@@ -104,10 +105,10 @@ The phase branch does not need to exist for planning — the autonomous routine 
 
 **Clarify Ambiguities — resolve before writing the plan:**
 
-- If requirements are unclear at this point, ask the user to clarify **before you continue planning**
-- Get specific implementation preferences (libraries, approaches, patterns)
-- Resolve architectural decisions before proceeding — but **do not settle them yourself when `docs/architecture.html` exists**. That file is the authority; read it and conform. If the phase genuinely cannot be planned within it, stop and hand back to `dev-architecture` for an amendment rather than deciding here. A phase doc that quietly contradicts the architecture is how an autonomous run builds the wrong thing without anyone noticing.
-- **Critical for unattended execution:** the generated plan must contain **zero** "ask the user" or "confirm with user" steps inside tasks. An autonomous execution agent has no user to ask. Every ambiguity must be either (a) resolved with the user *now*, before the plan is written, or (b) decided by you with a clear default and documented in the NOTES section as an assumption the implementation will follow. If you cannot resolve an ambiguity either way, surface it to the user before generating the plan rather than embedding it in a task.
+- If requirements are unclear at this point, ask the user to clarify **before you continue planning** — *unless this is an unattended run* (the brief says "do NOT ask the user questions", or the skill was launched by `dev-orchestrate`). In an unattended run you never stop for a requirements question. Decide it yourself, in this order of authority: `docs/architecture.html` → `docs/prd.html` → `CLAUDE.md` → earlier phase docs' Notes → the existing codebase's dominant pattern → the smallest reversible option. Record the question, the chosen answer, and the authority you used in the phase doc's Notes as `ASSUMPTION:`. The only unattended question you may not answer yourself is an architecture decision — that returns `ARCHITECTURE-MISFIT` (see below).
+- Get specific implementation preferences (libraries, approaches, patterns) — in an unattended run, read them off the codebase and `CLAUDE.md` instead of asking, and record each as an `ASSUMPTION:` in Notes
+- Resolve architectural decisions before proceeding — but **do not settle them yourself when `docs/architecture.html` exists**. That file is the authority; read it and conform. If the phase genuinely cannot be planned within it, stop and hand back to `dev-architecture` for an amendment rather than deciding here. A phase doc that quietly contradicts the architecture is how an autonomous run builds the wrong thing without anyone noticing. When `docs/architecture.html` does **not** exist and the run is unattended, do not ask and do not stop: pick the smallest reversible option that matches the existing codebase, record it as an `ASSUMPTION:` in Notes, and recommend `dev-architecture` in your return message.
+- **Critical for unattended execution:** the generated plan must contain **zero** "ask the user" or "confirm with user" steps inside tasks. An autonomous execution agent has no user to ask. Every ambiguity must be either (a) resolved with the user *now*, before the plan is written, or (b) decided by you with a clear default and documented in the NOTES section as an assumption the implementation will follow. If you cannot resolve an ambiguity either way, surface it to the user before generating the plan rather than embedding it in a task — except in an unattended run, where (a) is unavailable and (b) is mandatory: decide, document the assumption in Notes, and continue.
 
 ### Step 3: External Research & Documentation
 
@@ -155,13 +156,13 @@ The phase branch does not need to exist for planning — the autonomous routine 
 **Architecture Validation (if `docs/architecture.html` exists) — do this first:**
 - Read `docs/architecture.html`. It is the authority on stack, storage, architecture pattern, module layout, boundaries, state and failure, non-functional targets and deployment. The PRD summarizes those decisions; the architecture doc *is* them.
 - Verify the plan conforms to every `<h3 class="decision">` the phase touches. Cite the `data-decision` slugs in the plan's NOTES section so the execution agent inherits the constraint.
-- A decision marked `data-status="open"` is not settled. Do not plan tasks that depend on it — surface it to the user instead.
+- A decision marked `data-status="open"` is not settled. Do not plan tasks that depend on it. In an interactive run, surface it to the user. **In an unattended run, return `ARCHITECTURE-MISFIT`** followed by the open slug, its `data-reversible` value, and one line on why the phase needs it — the same protocol as a misfit, because the orchestrator has no other way to hear you.
 - If the phase cannot be planned within the settled decisions, stop and **write no phase doc** — not a stub, not a partial, not a doc with the conflict noted in it. A half-written doc on disk reads as a real plan to every downstream check. Name the slugs that would have to change and their `data-reversible` values, and hand back to `dev-architecture` for an amendment. Do not plan around the architecture.
 - Tell the user which phase number is blocked, and that `dev-architecture` needs it named on the amendment's stale list — nothing on disk records a phase that was never written, so it is the one phase an amendment can silently skip.
 
 **PRD Validation (if PRD exists):**
 - Read PRD at `docs/prd.html`
-- Verify plan preserves architectural patterns defined in the PRD — and where the PRD and `docs/architecture.html` disagree, the architecture doc wins. Flag the disagreement to the user; it means the PRD is stale.
+- Verify plan preserves architectural patterns defined in the PRD — and where the PRD and `docs/architecture.html` disagree, the architecture doc wins. Flag the disagreement to the user; it means the PRD is stale. *In an unattended run this is not a stop*: follow the architecture doc, record the conflict in the phase doc's Notes, and return it as an `ASSUMPTION:` line naming both sides so the orchestrator's report tells the user the PRD needs refreshing.
 - Validate against any architectural principles or design constraints in the PRD that the architecture doc does not cover
 
 ### Step 5: Plan Structure Generation
