@@ -155,9 +155,11 @@ Follow the project's `CLAUDE.md` conventions for commit messages and attribution
 
 Follow the project's `CLAUDE.md` conventions for PR bodies and attribution exactly.
 
-**9.3 Merge (squash)** — Squash-merge the PR and delete the remote branch in one step:
+**9.3 Merge (squash)** — Squash-merge the PR. Keep the remote branch:
 
-  gh pr merge <pr-number-or-url> --squash --delete-branch
+  gh pr merge <pr-number-or-url> --squash
+
+Never pass `--delete-branch`. The branch on `origin` is retained after the merge as a record of the phase. If the repository has "Automatically delete head branches" enabled, that GitHub setting removes the branch on merge and this skill cannot override it — note it in the Final Report so the user can turn it off in the repository settings.
 
 Each phase lands on `<default-branch>` as a single commit; per-task history remains in the closed PR. If the merge fails, sort the failure before you stop:
 
@@ -167,15 +169,17 @@ Each phase lands on `<default-branch>` as a single commit; per-task history rema
 - `docs/phases/*.html` — the phase branch wins for this phase's own doc; the default branch wins for every other phase's doc.
 - `README.md` and any other `docs/` file — keep both sides' content, ours then theirs, dropping only exact duplicate lines.
 
-Then commit the resolution, push, and re-run `gh pr merge --squash --delete-branch`. Record it in the Final Report as `MERGE-CONFLICT-RESOLVED: <paths>`.
+Then commit the resolution, push, and re-run `gh pr merge --squash` (again with no `--delete-branch`). Record it in the Final Report as `MERGE-CONFLICT-RESOLVED: <paths>`.
 
 **Stop** in every other case — a conflict touching any source, test, config or build file; a failing required check; a permissions error; or a docs-only retry that fails a second time. Leave the branch and PR intact, do not retry destructively, and report the exact failure in the Final Report. Do not proceed to 9.4.
 
-**9.4 Sync and clean up** — Return to the default branch and remove the local phase branch:
+**9.4 Sync and clean up** — Return to the default branch and remove the *local* phase branch only. The remote branch stays:
 
   git checkout <default-branch>
   git pull origin <default-branch>
   git branch -D <branch-name> 2>/dev/null || true
+
+Do not run `git push origin --delete <branch-name>`. The local branch is deleted only so the next phase starts from a clean default branch, and it can be restored at any time from `origin/<branch-name>`.
 
 The working tree must end on an up-to-date `<default-branch>` with a clean status — that is the required starting state for the next phase.
 
@@ -193,5 +197,5 @@ Provide a summary covering:
 - Any deviations from the plan and why
 - `docs/progress.html` updates (tasks recorded / marked done, phase marked complete, or "none — file not present")
 - README.md updates (or "none — change was not user-facing")
-- PR URL, merge result (squash-merged / failed and why), and branch cleanup status
+- PR URL, merge result (squash-merged / failed and why), and branch status — confirm the remote branch still exists on `origin` and that the local branch was removed
 - Final repo state: current branch and whether the working tree is clean — the next phase can start immediately if so

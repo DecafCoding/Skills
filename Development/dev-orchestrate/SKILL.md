@@ -112,7 +112,7 @@ Handle each of these on sight; never treat one as a generic failure.
 
 Launch a sub-agent with this brief:
 
-> Run `/dev-execute <N>` for this project from the repo root. This is an unattended run: do NOT ask the user questions; where the plan leaves room, choose the option most consistent with `CLAUDE.md` and the phase doc, and record the deviation in your Final Report. Follow the skill exactly, including its final step (push, PR, squash-merge with `--delete-branch`, sync the default branch, delete the local branch, re-run build + tests on the merged default branch). If the squash-merge conflicts and every conflicted path is under `docs/` or is `README.md`, resolve it per Step 9.3 and retry once rather than stopping; a conflict in any source, test, config or build file is a stop. Return your full Final Report, including every `MERGE-CONFLICT-RESOLVED:` line.
+> Run `/dev-execute <N>` for this project from the repo root. This is an unattended run: do NOT ask the user questions; where the plan leaves room, choose the option most consistent with `CLAUDE.md` and the phase doc, and record the deviation in your Final Report. Follow the skill exactly, including its final step (push, PR, squash-merge with **no** `--delete-branch`, sync the default branch, delete the *local* branch only, re-run build + tests on the merged default branch). The remote branch on `origin` must survive the merge — never delete it. If the squash-merge conflicts and every conflicted path is under `docs/` or is `README.md`, resolve it per Step 9.3 and retry once rather than stopping; a conflict in any source, test, config or build file is a stop. Return your full Final Report, including every `MERGE-CONFLICT-RESOLVED:` line.
 
 ### 4. Verify (the hard gate — run these commands yourself)
 
@@ -121,7 +121,7 @@ After the execute sub-agent returns:
 1. `git checkout <default-branch> && git pull` — must succeed.
 2. `git status --porcelain` — empty.
 3. The phase PR is MERGED (`gh pr view <url-from-report>` or `gh pr list --state merged --search "Phase <N>"`).
-4. `git branch -a` — no `phase-<N>-<slug>` locally or on origin.
+4. `git branch -a` — no *local* `phase-<N>-<slug>`, and `remotes/origin/phase-<N>-<slug>` still present.
 5. The project's build + test commands from `CLAUDE.md` exit 0 on `<default-branch>`.
 6. `docs/progress.html` on `<default-branch>` shows phase `<N>` `data-status="complete"` with every task `done` or `skipped`.
 
@@ -132,7 +132,7 @@ All six pass → post a short per-phase summary (phase, tasks, PR URL, test resu
 - **Check 1 fails** (`checkout`/`pull`) — if the failure is a dirty tree from doc edits, commit them onto `<default-branch>` with a `docs:` message per `CLAUDE.md` and retry once. Any other pull failure (network, diverged history, auth) → STOP.
 - **Check 2 fails** (tree not empty) — inspect the paths. Only `docs/` or `README.md` are dirty → commit them as `docs:` and continue, logging `DECISION: committed leftover doc edits`. Any source, test, config or build file is dirty → STOP; the sub-agent left work uncommitted and you cannot tell whether it is finished.
 - **Check 3 fails** (PR not merged) — STOP. Never merge the PR yourself to rescue the gate.
-- **Check 4 fails** (branch still present) — delete it yourself (`git branch -D` locally, `git push origin --delete` remotely) *only after check 3 confirmed the PR is merged*, log it, continue. If check 3 did not pass, the branch stays.
+- **Check 4 fails** (local branch still present) — delete the local branch yourself (`git branch -D`) *only after check 3 confirmed the PR is merged*, log it, continue. If check 3 did not pass, the branch stays. Never run `git push origin --delete`: remote phase branches are kept on purpose. If instead the *remote* branch is missing, the repository most likely has "Automatically delete head branches" enabled — log `DECISION: remote branch for phase <N> was auto-deleted by the repository setting` and continue, then flag the setting in the Final Report.
 - **Check 5 fails** (build/tests red on the merged default branch) — re-run once to rule out flakiness. Still red → STOP. Never fix directly on `<default-branch>`.
 - **Check 6 fails** (`progress.html` not marked complete) — this is bookkeeping the sub-agent missed, and you may repair it only within tight limits. If checks 3 and 5 passed, the work really is merged and green. Flip **only** tasks currently `todo` and carrying **no** `<blockquote class="blocker">` to `done`, then mark the phase `complete`. Leave every `skipped` mark as it is. A task still carrying a blocker is classified here exactly as in Step 1 — stale and actionable blockers are demoted and the task flipped like any other; a **user-owned** blocker means the sub-agent left work behind on purpose, so do not mark the phase complete: STOP and surface that blocker instead. Commit the repair as `docs:`, push, and log `DECISION: repaired progress.html bookkeeping for phase <N> — flipped tasks <list>`. If checks 3 or 5 failed, leave the file alone.
 
