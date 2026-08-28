@@ -63,9 +63,13 @@ The plan (phase doc or plan file) will contain:
 
   3 — Create and switch to the work branch
 
-  - **Executing a phase from `progress.html`:** use the phase branch `phase-<N>-<slug>` (the same name in the section's **Branch** meta line). If it already exists (e.g. resuming an `in-progress` phase), check it out instead of recreating it:
+  - **Executing a phase from `progress.html`:** use the phase branch `phase-<N>-<slug>` (the same name in the section's **Branch** meta line). Resolve it explicitly — never let `git checkout <branch>` fall through to a remote-tracking ref, because merged phase branches are retained on `origin` and that would silently start you at the stale pre-merge tip:
 
-    git checkout phase-<N>-<slug> 2>/dev/null || git checkout -b phase-<N>-<slug>
+    if git rev-parse --verify --quiet refs/heads/phase-<N>-<slug>; then
+      git checkout phase-<N>-<slug>          # resuming an in-progress phase
+    else
+      git checkout -b phase-<N>-<slug> <default-branch>   # always branch from the freshly pulled default branch
+    fi
 
   - **Executing an ad-hoc plan file** (not tied to a phase): create a descriptive branch following CLAUDE.md naming:
     - feat/ — new features (e.g., feat/langfuse-integration)
@@ -77,6 +81,8 @@ The plan (phase doc or plan file) will contain:
 
   git push -u origin <branch-name>
   The -u sets the upstream so future git push / git pull on this branch need no extra args.
+
+  **If the remote branch already exists** (`git ls-remote --heads origin <branch-name>` returns a line) and you just created the local branch in step 3, the push is rejected as non-fast-forward: the old remote tip belongs to a phase that was already squash-merged, so it shares no commit with your new branch. Do **not** force-push — that is a hard stop. Instead use the next free suffixed name, `phase-<N>-<slug>-2` (then `-3`, and so on), for the local branch, the push and the PR. Log it as `DECISION: phase branch renamed to <name> — origin/<branch-name> retained from an earlier merged run`.
 
   5 — Verify `gh` is authenticated with push access (`gh auth status`). Step 9 depends on it; if it is not authenticated, stop and tell the user before implementing anything, rather than discovering it after all the work is done.
 
@@ -159,7 +165,11 @@ Follow the project's `CLAUDE.md` conventions for PR bodies and attribution exact
 
   gh pr merge <pr-number-or-url> --squash
 
-Never pass `--delete-branch`. The branch on `origin` is retained after the merge as a record of the phase. If the repository has "Automatically delete head branches" enabled, that GitHub setting removes the branch on merge and this skill cannot override it — note it in the Final Report so the user can turn it off in the repository settings.
+Never pass `--delete-branch`. The branch on `origin` is retained after the merge as a record of the phase. Confirm it survived with a real query against the remote — `git branch -a` reads stale remote-tracking refs and will report the branch as present even after GitHub deleted it:
+
+  git ls-remote --heads origin <branch-name>
+
+If that returns nothing, the repository has "Automatically delete head branches" enabled. That GitHub setting removes the branch on merge and this skill cannot override it — note it in the Final Report so the user can turn it off in the repository settings.
 
 Each phase lands on `<default-branch>` as a single commit; per-task history remains in the closed PR. If the merge fails, sort the failure before you stop:
 
@@ -197,5 +207,5 @@ Provide a summary covering:
 - Any deviations from the plan and why
 - `docs/progress.html` updates (tasks recorded / marked done, phase marked complete, or "none — file not present")
 - README.md updates (or "none — change was not user-facing")
-- PR URL, merge result (squash-merged / failed and why), and branch status — confirm the remote branch still exists on `origin` and that the local branch was removed
+- PR URL, merge result (squash-merged / failed and why), and branch status — confirm with `git ls-remote --heads origin <branch-name>` that the remote branch still exists, and that the local branch was removed
 - Final repo state: current branch and whether the working tree is clean — the next phase can start immediately if so
