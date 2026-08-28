@@ -1,124 +1,171 @@
 ---
 name: dev-architecture
-description: Run a branch-by-branch architecture interview that turns a settled MVP scope into an agreed technical design at docs/architecture.html — no code, ever. Settles how the app gets built — language, storage, architecture pattern, module layout, boundaries, failure handling, non-functional targets, deployment and reversibility risk. Runs on a scope-frozen gate — after dev-initial-interview and any pre-build dev-add-feature passes, before dev-create-prd and dev-plan-phase. Also runs in amendment mode when the architecture already exists, naming every doc the change made stale and returning to whatever run was paused. Use whenever the user wants to design, decide, review or change the architecture, stack, tech choices, storage, project structure or design patterns — including "what should I build this in", "pick the stack", or "the architecture needs to change for this feature". Also use it when a request would tempt you to settle technical design inside a requirements or feature interview.
+description: Run a branch-by-branch architecture interview that turns a settled MVP scope into an agreed technical design at docs/architecture.html. It writes no code, ever. It settles how the app gets built. That covers language, storage, architecture pattern, module layout, boundaries, failure handling, non-functional targets, deployment and reversibility risk. It runs on a scope-frozen gate, after dev-initial-interview and before dev-create-prd and dev-plan-phase. It also runs in amendment mode when the architecture already exists. Amendment mode names every doc the change made stale and returns to whatever run was paused. Use it whenever the user wants to design, decide, review or change the architecture, stack, tech choices, storage, project structure or design patterns. That includes "what should I build this in" and "pick the stack". Also use it when a request would tempt you to settle technical design inside a requirements or feature interview.
 ---
 
 # Dev Architecture
 
-Turn a settled MVP scope into a technical design both of you agree on, recorded in one place that every downstream skill reads.
+Turn a settled MVP scope into a technical design that you and the user agree on. Record it in one place that every downstream skill reads.
 
-`dev-initial-interview` settles **what gets built**. This skill settles **how**. Keeping them apart is the whole point of the split — do not drift back across the line in either direction. If a question here would change what the app does rather than how it is built, it belongs to `dev-initial-interview` or `dev-add-feature`; say so and park it.
+`dev-initial-interview` settles **what gets built**. This skill settles **how it gets built**. Keep the two apart in both directions.
+
+If a question here would change what the app does, it belongs to `dev-initial-interview` or `dev-add-feature`. Say so and park it.
 
 ## Hard constraint
 
-Do not write application code. Not scaffolding, not a "quick example," not a snippet to illustrate a point. Schemas, interface contracts, directory trees, config shapes, and pseudocode-level structure are fine when they *are* the design decision under discussion — implementation is not. If the user asks for code mid-interview, note that it's outside this skill and offer to finish the design first.
+Do not write application code. This ban covers scaffolding, quick examples and illustrative snippets.
+
+Schemas, interface contracts, directory trees, config shapes and pseudocode-level structure are allowed. Use them only when they are the design decision under discussion.
+
+If the user asks for code during the interview, say that code is outside this skill. Offer to finish the design first.
 
 ## Step 0: The scope-frozen gate
 
-This skill runs when the MVP in-scope list has stopped changing. Not on a fixed pipeline position — on that state. Check it before asking anything else.
+This skill runs when the MVP in-scope list has stopped changing. The gate is that state. The gate is not a fixed position in the pipeline. Check it before you ask anything else.
 
 **Read `docs/mvp-plan.html` first.**
 
-- **It does not exist** — stop. There is no scope to design against. Point the user at `dev-initial-interview` and offer to run it.
-- **It exists** — read the Scope section's in-scope checklist (`<li data-checked="true">`), the Constraints section, and the Amendments section at the end.
-- **`docs/architecture.html` already exists** — this is not a fresh run. Go to "Amendment mode" below, and establish which of its four entry points brought you here before doing anything else.
+- **It does not exist.** Stop. There is no scope to design against. Point the user at `dev-initial-interview` and offer to run it.
+- **It exists.** Read the Scope section's in-scope checklist (`<li data-checked="true">`). Read the Constraints section. Read the Amendments section at the end.
+- **`docs/architecture.html` already exists.** This is not a fresh run. Go to "Amendment mode" below. Establish which of its four entry points brought you here before you do anything else.
 
-**Then check for movement.** Scope is frozen when nothing has moved on or off the in-scope list recently, and the user is not mid-thought about another feature. The Amendments section is the signal: a run of recent entries adding features means scope is still open.
+**Then check for movement.** Scope is frozen when two things are true. Nothing has moved on or off the in-scope list recently. The user is not mid-thought about another feature.
+
+The Amendments section is the signal. A run of recent entries that add features means scope is still open.
 
 Ask once, with a recommendation, and take the answer:
 
-> **Scope check:** the plan has 11 in-scope items, last amended 3 March when saved views were added. Design the architecture against that set now?
-> *Recommend yes* — nothing on the deferred list changes the shape of what we'd build, so waiting only delays the decisions everything else needs.
+> **Scope check:** the plan has 11 in-scope items. It was last amended on 3 March, when saved views were added. Design the architecture against that set now?
+> *Recommend yes.* Nothing on the deferred list changes the shape of what we would build. Waiting only delays the decisions everything else needs.
 
-If the user says more features are coming first, stop and point them at `dev-add-feature`. Do not design against a moving target and do not start "just the easy branches" — the easy branches are the ones later features move.
+If the user says more features are coming first, stop. Point them at `dev-add-feature`. Do not design against scope that is still changing. Do not start with the easy branches. Later features often move those branches.
 
-**Also read, when present:**
+**Also read these files when they are present:**
 
-- `docs/mvp-plan.html` → Constraints → **Open architecture inputs**. This is your starting agenda, in the user's own words. Branch 1 is nothing but working through it.
-- `docs/feature-*.html` — feature briefs from `dev-add-feature`, for anything the plan summarizes in one line.
-- `docs/design-system.html` — from `dev-ui-update`. Design decisions constrain the surface and sometimes the stack. Read it before branch 2, not after.
-- `docs/competitive-scan.html` — only for the market-wide signals note. Sentiment about data lock-in, cost, or offline use is architecture input. Nothing else in the scan is.
+- `docs/mvp-plan.html` → Constraints → **Open architecture inputs**. This is your starting agenda, in the user's own words. Branch 1 works through it.
+- `docs/feature-*.html`. These are feature briefs from `dev-add-feature`. Read them for anything the plan summarizes in one line.
+- `docs/design-system.html`. This comes from `dev-ui-update`. Design decisions constrain the surface and sometimes the stack. Read it before branch 2.
+- `docs/competitive-scan.html`. Read only the market-wide signals note. Sentiment about data lock-in, cost or offline use is architecture input. Nothing else in the scan is.
 
 ## House defaults
 
-Two decisions have a standing answer. Offer each as a recommendation and take a one-word confirmation:
+Two decisions have a standing answer. Offer each as a recommendation. Take a one-word confirmation.
 
-- **Runtime and stack — C# / .NET**, current LTS unless the user names a version.
-- **Architecture pattern — Vertical Slice.** Organize by feature under `Features/{FeatureName}/`, keeping endpoint/page, handler, models and validation together. Extract to `Shared/` only for genuine cross-cutting concerns, never prematurely.
+- **Runtime and stack: C# / .NET.** Use the current LTS unless the user names a version. LTS means Long Term Support.
+- **Architecture pattern: Vertical Slice.** Organize by feature under `Features/{FeatureName}/`. Keep the endpoint or page, the handler, the models and the validation together. Extract to `Shared/` only for genuine cross-cutting concerns.
 
-These match the profile `dev-claud-md` emits, so an unchanged answer costs nothing downstream. An override does — see "The override warning."
+These match the profile that `dev-claud-md` emits. An unchanged answer costs nothing downstream. An override does cost something. See "The override warning".
 
-**Offer the default; never apply it silently.** The default is a starting position, not a settled decision. The user gets one clear chance to say no on each, and a real reason if they ask why. A default applied without being shown is the same failure as a default that isn't there.
+**Offer the default. Never apply it silently.** The default is a starting position. The user gets one clear chance to say no on each one. Give a real reason if they ask why. A default you apply without showing it is a failure.
 
-**Drop the default when the constraints contradict it.** A browser extension, a shell utility, an embedded target, or a stated third-party requirement can make C# the wrong answer. When the inherited constraints point elsewhere, lead with the fitting recommendation and mention the house default as the thing you're departing from, so the user can pull it back.
+**Drop the default when the constraints contradict it.** A browser extension, a shell utility, an embedded target or a stated third-party requirement can make C# the wrong answer.
 
-## Clean slate — and why the defaults are not an exception
+When the inherited constraints point elsewhere, lead with the fitting recommendation. Name the house default you are departing from. The user can then ask for it back.
 
-`dev-initial-interview` bans sourcing decisions from memory. That ban carries here, in full:
+## Clean slate
 
-- Not stored user preferences, not a profile of how this user usually builds things
-- Not another project's stack, pattern, layout, or naming conventions
-- Not a decision "we made last time" that nobody has restated
+`dev-initial-interview` bans sourcing decisions from memory. That ban applies here in full. Do not source a decision from any of these:
 
-The house defaults above are **not** memory. They are written into this skill file, which makes them a standing instruction the user authored deliberately. That is a legitimate input. A stack recalled from another project is not, even when it matches — if it is right, it is right on this project's merits, and the confirm question will land on it anyway.
+- Stored user preferences, or a profile of how this user usually builds things
+- Another project's stack, pattern, layout or naming conventions
+- A decision "we made last time" that nobody has restated
 
-The only legitimate inputs to a decision here are: the plan and its sibling docs, what the user says in this conversation, the house defaults, and what the two of you reason out together. If a decision has no source in one of those, it has no source.
+The house defaults above are **not** memory. They are written into this skill file. That makes them a standing instruction the user wrote deliberately. That is a legitimate input.
+
+A stack recalled from another project is not a legitimate input, even when it matches. If it is right, it is right on this project's merits. The confirm question will reach it anyway.
+
+Only four inputs are legitimate here. They are the plan and its sibling docs, what the user says in this conversation, the house defaults, and what you and the user reason out together. A decision with no source in that list has no source.
 
 ## Method
 
-Walk the design tree in dependency order. A decision that constrains three others gets settled first, and say so when you're doing it: "This one picks the layout for us, so let's settle it first."
+Walk the design tree in dependency order. Settle a decision that constrains three others first. Say so when you do it: "This one picks the layout for us. Let us settle it first."
 
 Branch order, adapted to the domain:
 
-1. **Constraints review** — work the Open architecture inputs list from the plan. Every parked question gets answered or explicitly carried to Open questions. Nothing is dropped silently.
-2. **Runtime and stack** — language, framework, versions. House default applies.
-3. **Storage** — engine, schema shape, migrations, seed and test data.
-4. **Architecture pattern** — Vertical Slice, Clean, layered, MVC, hexagonal, or plain. One choice, with the reason. House default applies.
-5. **Module layout** — the folder shape the pattern implies, and the import direction rule: which parts may reference which, and which direction is forbidden.
-6. **Boundaries** — internal seams, and every outside service, SDK, or API. What is wrapped, what is called directly, and what happens when each one is unavailable.
-7. **State and failure** — persistence, concurrency, transactions, error surfaces, retry, recovery, and what a partial failure leaves behind.
-8. **Non-functional** — scale, latency, throughput, security, privacy, cost ceiling. Numbers, not adjectives.
-9. **Deployment** — target, environments, configuration and secrets, CI.
-10. **Risks and reversibility** — for each decision above, how expensive it is to undo. This is where the plan earns its keep, so do not compress it into a closing sentence.
+1. **Constraints review.** Work the Open architecture inputs list from the plan. Answer every parked question, or carry it to Open questions in writing. Drop nothing silently.
+2. **Runtime and stack.** Language, framework, versions. The house default applies.
+3. **Storage.** Engine, schema shape, migrations, seed and test data.
+4. **Architecture pattern.** Vertical Slice, Clean, layered, MVC, hexagonal, or plain. Make one choice. Give the reason. The house default applies.
+5. **Module layout.** The folder shape the pattern implies. Also the import direction rule. That rule says which parts may reference which, and which direction is forbidden.
+6. **Boundaries.** Internal seams, and every outside service, SDK or API. State what is wrapped and what is called directly. State what happens when each one is unavailable.
+7. **State and failure.** Persistence, concurrency, transactions, error surfaces, retry and recovery. State what a partial failure leaves behind.
+8. **Non-functional.** Scale, latency, throughput, security, privacy, cost ceiling. Give numbers.
+9. **Deployment.** Target, environments, configuration and secrets, CI.
+10. **Risks and reversibility.** For each decision above, state how expensive it is to undo. Give this branch full attention. Do not compress it into a closing sentence.
 
-**Order matters more than usual here.** Stack narrows the sane patterns. Pattern dictates layout. Storage and boundaries decide most of state and failure. Taking them out of order produces a design that has to be re-litigated backwards.
+**Order matters here.** Stack limits the workable patterns. Pattern dictates layout. Storage and boundaries decide most of state and failure. Out-of-order decisions force you to re-decide backwards.
 
-Push on vagueness. "It should scale" is not an answer; "one user now, under 50k rows, no concurrent writers" is. When an answer contradicts an earlier one, or contradicts the MVP plan, surface the conflict immediately rather than carrying it forward.
+Ask again when an answer is vague. "It should scale" is not an answer. "One user now, under 50k rows, no concurrent writers" is an answer.
 
-**When a branch turns out to be scope, not architecture** — the user reaches for a feature that isn't on the in-scope list — stop, name it, and offer `dev-add-feature`. Do not quietly widen the MVP from inside an architecture interview.
+Surface a conflict at once when an answer contradicts an earlier one or contradicts the MVP plan. Do not carry it forward.
+
+**When a branch turns out to be scope.** The user reaches for a feature that is not on the in-scope list. Stop. Name it. Offer `dev-add-feature`. Do not widen the MVP from inside an architecture interview.
+
+## How to write
+
+Write every message in ASD-STE100 Simplified Technical English. STE is a controlled English standard that limits you to plain approved words.
+
+- Use plain words and active voice.
+- Put one idea in each sentence. Keep sentences under 20 words.
+- Keep paragraphs to 3 sentences or fewer.
+- Explain a technical word right after you use it.
+- Do not use idioms, metaphors or figures of speech.
+- Do not use contrast pairs such as "X, not Y". State only what is true.
+- Do not use semicolons or em dashes. Write two sentences.
+- Do not restate an idea in different words for effect.
+- Give only the facts the user needs to act on. Leave out dates, IDs and background unless they ask.
+- Say what you did, whether it worked, and what the user does next.
+- Keep paths and commands exact.
+
+These rules cover your chat messages. They also cover the prose inside `docs/architecture.html`. The HTML format rules are separate. See "Finishing".
 
 ## Question format
 
-Ask one question at a time, or a tight cluster when they're genuinely coupled. For every question, give your recommended answer and a one-line reason. The user should be able to reply "yes" and move on.
+Ask one question at a time. Ask a tight cluster only when the questions are genuinely coupled.
 
-Ask conversationally, in prose. Never use tappable-button, single-select, or multiple-choice question widgets — the user answers in free text, and the real answer is often something you didn't list.
+Give 2 or 3 options for every question. Write one line for each option. Say what it costs and what it buys.
+
+Then name the option you recommend and give the reason. The user should be able to reply with the number and move on.
+
+Anchor every recommendation. Cite the MVP plan, an inherited constraint, a sibling doc, or an answer the user already gave. Say which one you used. A recommendation with no anchor is a guess.
+
+Write the options in prose. Never use tappable-button, single-select or multiple-choice widgets. The user types a free-text answer. The real answer is often something you did not list, so invite that.
 
 **Example:**
 
-> **Storage:** SQLite for the MVP?
-> *Recommend yes* — single-user desktop scope, zero-ops, and EF Core makes the move to Postgres cheap if it ever needs one.
+> **Storage:** how should the MVP store its data?
+>
+> 1. SQLite. One file, no server to run. EF Core keeps a later move cheap.
+> 2. Postgres. More setup now. It pays off if a hosted version arrives within a year.
+> 3. JSON files on disk. Simplest to start. It fails as soon as you need queries.
+>
+> *I recommend 1.* The scope is a single-user desktop app, so a server buys nothing today.
+>
+> Type your answer. Anything outside this list is fine too.
 
-Do not present a list of options in place of a recommendation. The recommendation is the value.
+Do not give a list of options with no recommendation. The recommendation is the value.
 
 ## Conciseness
 
-Keep responses short. State the question, the recommendation, the reason. No preamble, no recap of what was already decided, no explanatory essays. The user will ask if they want more. Long responses slow the interview down and bury the actual question.
+Keep responses short. State the question, the recommendation and the reason.
+
+Do not add preamble. Do not recap decisions that are already settled. Do not write explanatory essays. The user will ask when they want more.
 
 ## Tracking state
 
-Maintain a running list of settled decisions and open branches. Surface it only when it's useful — after a major branch closes, or when the user asks where things stand. Don't re-print it every turn.
+Keep a running list of settled decisions and open branches. Show it after a major branch closes, or when the user asks where things stand. Do not print it every turn.
 
 ## Finishing: the architecture document
 
-The interview ends when every branch is closed and the user agrees the picture is complete. Then write the design to a **fixed path: `docs/architecture.html`**, alongside the plan it serves. If a file is already there, you are in Amendment mode — see below.
+The interview ends when every branch is closed and the user agrees the picture is complete. Then write the design to a **fixed path: `docs/architecture.html`**, beside the plan it serves. If a file is already there, you are in Amendment mode. See below.
 
-The path is fixed on purpose. `dev-create-prd`, `dev-plan-phase`, `dev-claud-md` and later `dev-add-feature` runs all look for `docs/architecture.html` by name. An architecture with no canonical location silently forks.
+The path is fixed on purpose. `dev-create-prd`, `dev-plan-phase`, `dev-claud-md` and later `dev-add-feature` runs all look for `docs/architecture.html` by name. An architecture with no fixed location gets copied into several files.
 
-**Format.** Emit a self-contained HTML document using the same scaffold and element conventions as `dev-create-prd`: doctype, `<head>` with the embedded `<style>` block, one `<h2>` per section, `<h3>` for subsections, real `<table>` markup, `<pre><code>` for directory trees and config shapes, and `<ul class="checklist">` with `data-checked` where a list is genuinely in/out.
+**Format.** Emit a self-contained HTML document. Use the same scaffold and element conventions as `dev-create-prd`. That means a doctype, a `<head>` with the embedded `<style>` block, one `<h2>` per section, `<h3>` for subsections, real `<table>` markup, `<pre><code>` for directory trees and config shapes, and `<ul class="checklist">` with `data-checked` where a list is genuinely in or out.
 
 **Sections, in order:**
 
-1. Context — what this design serves, with a link to `docs/mvp-plan.html` and the inherited constraints listed plainly
+1. Context. What this design serves, with a link to `docs/mvp-plan.html` and the inherited constraints listed plainly
 2. Stack
 3. Storage
 4. Architecture pattern
@@ -131,7 +178,7 @@ The path is fixed on purpose. `dev-create-prd`, `dev-plan-phase`, `dev-claud-md`
 11. Open questions
 12. Amendments
 
-**Every decision carries machine-readable attributes.** Sections 2 through 9 are decisions, and each `<h3>` inside them takes this shape:
+**Every decision carries machine-readable attributes.** Sections 2 through 9 are decisions. Each `<h3>` inside them takes this shape:
 
 ```html
 <h3 class="decision"
@@ -140,94 +187,94 @@ The path is fixed on purpose. `dev-create-prd`, `dev-plan-phase`, `dev-claud-md`
     data-reversible="cheap">Storage engine: SQLite</h3>
 ```
 
-- `data-decision` — a stable kebab-case slug. Amendments reference it, so it never changes once written.
-- `data-status` — `settled`, `open`, or `amended`.
-- `data-reversible` — `cheap`, `moderate`, or `expensive`. Fill this from branch 10, and make it honest; an `expensive` marked `cheap` is how a project ends up rewritten.
+- `data-decision`. A stable kebab-case slug. Amendments reference it, so it never changes once written.
+- `data-status`. One of `settled`, `open` or `amended`.
+- `data-reversible`. One of `cheap`, `moderate` or `expensive`. Fill this from branch 10. Make it honest. An expensive decision marked cheap is how a project ends up rewritten.
 
-The visible heading is what a human reads; the attributes are what tooling reads. Keep them in sync.
+A human reads the visible heading. Tooling reads the attributes. Keep them in sync.
 
-**Three rules for the document.** These are the same three rules `dev-initial-interview` applies to the plan, and each is separate — satisfying one is not satisfying the others.
+**Three rules for the document.** `dev-initial-interview` applies these same three rules to the plan. Each rule is separate. Satisfying one does not satisfy the others.
 
-1. **Self-contained HTML.** Renders with no network. Styles embedded in a `<style>` block. No external stylesheet, no CDN script, no remote font, no hotlinked image.
-2. **No memory.** No decision may come from stored preferences, a user profile, or another project. See "Clean slate."
-3. **Closed doc set.** Links point only to files inside `docs/`. Never a web page, vendor doc, or blog post. A library worth choosing is worth naming with its version in the text; the reader can search for it.
+1. **Self-contained HTML.** It renders with no network. Embed styles in a `<style>` block. Use no external stylesheet, no CDN script, no remote font and no hotlinked image.
+2. **No memory.** No decision may come from stored preferences, a user profile or another project. See "Clean slate".
+3. **Closed doc set.** Links point only to files inside `docs/`. Never link a web page, a vendor doc or a blog post. Name a library with its version in the text. The reader can search for it.
 
-**Open questions.** Anything genuinely undecidable now goes in section 11 with what would settle it and when it has to be settled by. An empty Open questions section is suspicious — say so if the design really has none.
+**Open questions.** Put anything you genuinely cannot decide now into section 11. Give what would settle it, and the date by which it must be settled. An empty Open questions section is suspicious. Say so if the design really has none.
 
 ## The override warning
 
-`dev-claud-md` hard-codes the .NET / Vertical Slice profile as its default. That is deliberate and stays. It means an override here can be silently overwritten there.
+`dev-claud-md` hard-codes the .NET / Vertical Slice profile as its default. That is deliberate and stays. It means `dev-claud-md` can silently overwrite an override you settle here.
 
-So: **if the user overrides the stack or the pattern**, do three things before reporting.
+If the user overrides the stack or the pattern, do three things before you report.
 
-1. Record the override in `docs/architecture.html` with `data-status="settled"` and the reason for departing from the house default, stated in the section text.
-2. Add an Open questions entry noting that `dev-claud-md` must be pointed at `docs/architecture.html` for this project rather than run on its default.
-3. Tell the user out loud, in the report, in plain words. Not a footnote. This is the one failure mode of keeping the default, and the warning is what makes keeping it safe.
+1. Record the override in `docs/architecture.html` with `data-status="settled"`. State the reason for departing from the house default in the section text.
+2. Add an Open questions entry. It says that `dev-claud-md` must be pointed at `docs/architecture.html` for this project instead of run on its default.
+3. Tell the user in the report, in plain words. Do not put it in a footnote. This is the one failure mode of keeping the default. The warning is what makes keeping it safe.
 
-If neither is overridden, say so in one line — the downstream default matches, and nothing needs pointing anywhere.
+If neither is overridden, say so in one line. The downstream default matches. Nothing needs pointing anywhere.
 
 ## Amendment mode
 
-`docs/architecture.html` is living, not a snapshot. A later `dev-add-feature` run that finds a feature does not fit the architecture hands back here.
+`docs/architecture.html` is a living document. A later `dev-add-feature` run hands back here when a feature does not fit the architecture.
 
 When the file already exists:
 
-1. **Read it first, in full.** Then read what changed in `docs/mvp-plan.html` since the architecture's last dated pass.
-2. **Name the affected decisions by slug** and confirm the list with the user before touching anything. A feature usually moves two or three decisions, not the whole design.
-3. **Run only the affected branches.** Do not re-open settled decisions the change does not touch, and do not re-litigate the house defaults.
-4. **Never delete a decision.** Flip its `data-status` to `amended`, revise the section text, and keep the original reasoning visible — that reasoning is why the decision was made, and deleting it makes the change unauditable.
-5. **Append an Amendments entry** as a `<p class="meta">` giving the date, which decision slugs changed, what changed, and what caused it, so the history is readable without a diff.
-6. **Re-check the override warning.** An amendment can introduce one where there wasn't one before.
+1. **Read it in full first.** Then read what changed in `docs/mvp-plan.html` since the architecture's last dated pass.
+2. **Name the affected decisions by slug.** Confirm the list with the user before you touch anything. A feature usually moves two or three decisions.
+3. **Run only the affected branches.** Do not re-open settled decisions that the change does not touch. Do not re-open the house defaults.
+4. **Never delete a decision.** Flip its `data-status` to `amended`. Revise the section text. Keep the original reasoning visible. That reasoning is why the decision was made. Deleting it makes the change unauditable.
+5. **Append an Amendments entry** as a `<p class="meta">`. Give the date, the decision slugs that changed, what changed, and what caused it. The history must be readable without a diff.
+6. **Re-check the override warning.** An amendment can introduce one where there was none before.
 
 ### Note how you got here
 
-Amendment mode has four entry points, and the right closing report depends on which one it was. Establish this at the start, not the end:
+Amendment mode has four entry points. The right closing report depends on which one it was. Establish this at the start.
 
 1. **`dev-add-feature`** paused a feature interview because the feature did not fit.
 2. **`dev-plan-phase`** could not plan a phase within the settled decisions.
 3. **`dev-orchestrate`** stopped its loop on `ARCHITECTURE-MISFIT`.
-4. **The user asked directly** — "we need to move to Postgres." Nothing is paused.
+4. **The user asked directly.** An example is "we need to move to Postgres". Nothing is paused.
 
-If it isn't obvious from the conversation, ask. One line, and it changes what you tell them at the end.
+Ask if the entry point is unclear from the conversation. One line is enough. It changes what you tell them at the end.
 
 ### Closing an amendment
 
-**Do not use the fresh-run Next step list below.** It is written for a project that has no PRD yet, and following it after an amendment sends the user to create a document that already exists. An amendment closes differently.
+**Do not use the fresh-run Next step list below.** That list is written for a project with no PRD yet. Following it after an amendment sends the user to create a document that already exists. An amendment closes in its own way.
 
 **First, name what is now stale.** An amendment silently invalidates every document that copied the old decision. List them by name, with the changed slugs beside them:
 
-- `docs/prd.html` — its Core Architecture and Technology Stack sections describe the superseded decision. It needs **updating**, not creating.
-- `CLAUDE.md` — this is the one that bites hardest. Every future agent session reads it and inherits the old convention. An amendment that never reaches `CLAUDE.md` is an amendment that does not take effect.
-- `docs/phases/*.html` — any *unstarted* phase doc whose Notes cite a slug you just amended was planned against the old decision. **Grep the Notes sections for the amended slugs and list every phase number you find**, not just the phase that triggered the amendment. Already-merged phases are history; leave them.
-  - **Then add the triggering phase by hand, whether or not a doc exists for it.** When entry point 2 or 3 brought you here, `dev-plan-phase` stopped before writing anything, so the grep cannot find that phase — and a doc left over from an earlier planning pass may cite no slugs at all. Either way it is the one phase guaranteed to need re-planning, and it is the one the grep is guaranteed to miss. Add it explicitly or it falls through every check below.
-- `docs/mvp-plan.html` — only if the amendment changed a constraint recorded in its Constraints section.
+- `docs/prd.html`. Its Core Architecture and Technology Stack sections describe the superseded decision. The file already exists. Update it.
+- `CLAUDE.md`. This file affects the most future work. Every future agent session reads it and inherits the old convention. An amendment that never reaches `CLAUDE.md` does not take effect.
+- `docs/phases/*.html`. Any *unstarted* phase doc whose Notes cite a slug you just amended was planned against the old decision. **Grep the Notes sections for the amended slugs and list every phase number you find.** Include every affected phase. Already-merged phases are history. Leave them.
+  - **Then add the triggering phase by hand.** Do this whether or not a doc exists for it. Entry points 2 and 3 mean `dev-plan-phase` stopped before writing anything, so the grep cannot find that phase. A doc left over from an earlier planning pass may cite no slugs at all. That phase is certain to need re-planning. The grep is certain to miss it. Add it explicitly. Every check below will miss it otherwise.
+- `docs/mvp-plan.html`. Include it only if the amendment changed a constraint recorded in its Constraints section.
 
-**Then give the refresh order**, and say it is not optional:
+**Then give the refresh order.** Say that the order is required.
 
-1. `dev-create-prd` — update the affected sections.
-2. `dev-claud-md` — after the PRD, so the repo's house rules match.
-3. `dev-plan-phase <N>` — **once for every phase number on the stale list above**, not only the one that triggered the amendment. This step must run after step 2: `dev-plan-phase` reads `CLAUDE.md` for its conventions, so re-planning before the house rules are refreshed bakes the superseded decision straight back into the new phase doc.
-4. `dev-create-progress` — last, to rebuild the index from the re-planned phase docs. If it warns that it would clobber `done` or `skipped` marks, stop and show the user the warning rather than forcing it.
+1. `dev-create-prd`. Update the affected sections.
+2. `dev-claud-md`. Run it after the PRD, so the repo's house rules match.
+3. `dev-plan-phase <N>`. Run it once for every phase number on the stale list above. Include every affected phase. This step must run after step 2. `dev-plan-phase` reads `CLAUDE.md` for its conventions. Re-planning before the house rules are refreshed writes the superseded decision back into the new phase doc.
+4. `dev-create-progress`. Run it last, to rebuild the index from the re-planned phase docs. If it warns that it would clobber `done` or `skipped` marks, stop. Show the user the warning. Do not force it.
 
-If no unstarted phase doc cites an amended slug, say so and skip steps 3 and 4. A short accurate list beats a long defensive one.
+If no unstarted phase doc cites an amended slug, say so and skip steps 3 and 4. Keep the list short and accurate.
 
-**Then return to what was paused**, by entry point:
+**Then return to what was paused.** The closing depends on the entry point.
 
-- **From `dev-add-feature`** — send them back to finish that feature interview, and say explicitly to re-read `docs/architecture.html` first so the interview resumes against the amended decisions. Name the feature so they know which interview.
-- **From `dev-plan-phase`** — nothing extra, *provided you added the blocked phase to the stale list by hand*. Step 3 then re-plans it along with every other affected phase. If you did not add it, it is on no list and nothing re-plans it — go back and add it now rather than mentioning it separately here, so there is one owner for the re-plan and the user does not run it twice.
-- **From `dev-orchestrate`** — the loop stopped and will not resume itself. Tell them to re-run it after the refresh order above completes, or it will plan the next phase from a stale `CLAUDE.md`.
-- **From a direct request** — nothing is paused, so the refresh order *is* the whole of what remains. Say so plainly rather than leaving them wondering what they forgot. This entry point has no interview to remind them, which is exactly why the stale list has to be loud.
+- **From `dev-add-feature`.** Send them back to finish that feature interview. Say explicitly to re-read `docs/architecture.html` first, so the interview resumes against the amended decisions. Name the feature so they know which interview.
+- **From `dev-plan-phase`.** Nothing extra is needed, provided you added the blocked phase to the stale list by hand. Step 3 then re-plans it with every other affected phase. If you left it off, no list covers it and nothing re-plans it. Go back and add it now. Do not mention it separately here. One owner for the re-plan stops the user running it twice.
+- **From `dev-orchestrate`.** The loop stopped and will not resume itself. Tell them to re-run it after the refresh order above completes. Otherwise it will plan the next phase from a stale `CLAUDE.md`.
+- **From a direct request.** Nothing is paused. The refresh order is the whole of what remains. Say so plainly, so they do not wonder what they forgot. This entry point has no interview to remind them. State the stale list clearly.
 
 ## Next step
 
-**This section is for a fresh run only.** After an amendment, use "Closing an amendment" above instead.
+**This section is for a fresh run only.** After an amendment, use "Closing an amendment" above.
 
-Report every file written, the decision tally by `data-reversible`, any open questions, and the override warning if one applies.
+Report every file written. Report the decision tally by `data-reversible`. Report any open questions. Report the override warning if one applies.
 
 Then name the next step:
 
-- `dev-create-prd` — turn the plan and this design into `docs/prd.html`. Its Core Architecture and Technology Stack sections cite this file rather than re-deciding it.
-- `dev-claud-md` — after the PRD exists, so the repo's house rules match the design.
-- `dev-add-feature` — when a new feature needs folding in later. It comes back here if the feature doesn't fit.
+- `dev-create-prd`. It turns the plan and this design into `docs/prd.html`. Its Core Architecture and Technology Stack sections cite this file instead of re-deciding it.
+- `dev-claud-md`. Run it after the PRD exists, so the repo's house rules match the design.
+- `dev-add-feature`. Use it when a new feature needs folding in later. It comes back here if the feature does not fit.
 
 Still no code.

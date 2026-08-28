@@ -6,11 +6,6 @@ happens through relentless interviews, requirements land in machine-readable HTM
 documents, and implementation runs one validated task at a time behind
 machine-checkable gates.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../assets/pipeline-dark.jpg">
-  <img alt="The AI development process pipeline: functional design, UI/UX design, setup, and the automated implementation loop" src="../assets/pipeline-light.jpg">
-</picture>
-
 ## The pipeline
 
 1. **[`dev-initial-interview`](dev-initial-interview/SKILL.md)** — a

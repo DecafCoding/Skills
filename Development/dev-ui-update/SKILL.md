@@ -1,6 +1,6 @@
 ---
 name: dev-ui-update
-description: Fold a visual design handoff into a project's planning docs — read the handoff bundle (HTML mockups, README, design tokens, screenshots), create or update docs/design-system.html as the single source of truth for everything design, surface every conflict between the mockups and the existing plan, then sweep stale design lines out of docs/mvp-plan.html, docs/prd.html, docs/progress.html, the docs/feature-*.html briefs and docs/competitive-scan.html. Handles both the first handoff and every later one that revises or expands the UI, keeping a dated handoff log so nothing silently overwrites a locked decision. Never writes application code. Use whenever a design handoff, design package, mockup set, screen comps, style guide or design tokens arrive and must be reconciled with the plan — including "incorporate the design", "here are the new mockups", "the designer sent an update", "build the design system doc", "the UI changed", or "these screens are redesigned".
+description: Fold a visual design handoff into a project's planning docs — read the handoff bundle (HTML mockups, README, design tokens), create or update docs/design-system.html as the single source of truth for everything design, surface every conflict between the mockups and the existing plan, then sweep stale design lines out of docs/mvp-plan.html, docs/prd.html, docs/progress.html, the docs/feature-*.html briefs and docs/competitive-scan.html. Handles both the first handoff and every later one that revises or expands the UI, keeping a dated handoff log so nothing silently overwrites a locked decision. Never writes application code. Use whenever a design handoff, design package, mockup set, screen comps, style guide or design tokens arrive and must be reconciled with the plan — including "incorporate the design", "here are the new mockups", "the designer sent an update", "build the design system doc", "the UI changed", or "these screens are redesigned".
 ---
 
 # Dev UI Update
@@ -25,7 +25,7 @@ Before reading anything closely, list what exists. Do not skip this — the mode
    - a `README.md` — the written spec; the most important file in the bundle
    - one or more `*.dc.html` / `*.html` mockup canvases, plus a `support.js` runtime
    - `_ds/<system-name>-<uuid>/` — `styles.css` (authoritative token values), `readme.md` (the base design system's own guide), `_ds_manifest.json`, sometimes an adherence lint config
-   - `screenshots/` — flat renders plus their own `README.md` index
+   - `screenshots/README.md` — the per-frame index, when the bundle ships one. Only this index is read. The image files themselves are never opened, linked or embedded.
    - `reference/` — frozen copies of the plan docs (see constraint 2)
 2. **The design doc.** Does `docs/design-system.html` already exist?
 3. **The plan docs.** Note which of these exist, by name: `docs/mvp-plan.html`, `docs/prd.html`, `docs/progress.html`, `docs/phases/*.html`, `docs/competitive-scan.html`, `docs/feature-*.html`, `README.md`, `CLAUDE.md`.
@@ -42,14 +42,14 @@ Read, in this order:
 1. The bundle `README.md`, whole. It carries the fidelity statement, the deviations from the base design system, the token tables, the per-screen specs, the interaction contracts, and — usually — a "not yet designed" list and an open-questions list. Everything downstream keys off it.
 2. `_ds/*/styles.css` — the real token values. Where the README's table and the CSS disagree on a hex or a ramp, the CSS wins for values; the README wins for usage.
 3. `_ds/*/readme.md` — the base system. You need this to state, in the design doc, which of the base system's rules the app deliberately breaks.
-4. `screenshots/README.md` — the per-frame index. Cheaper than parsing the mockup canvas, and it names each frame's option ID.
+4. `screenshots/README.md` — the per-frame index, if the bundle has one. Cheaper than parsing the mockup canvas, and it names each frame's option ID. Skip this step when the file is absent and take frame IDs from the mockup canvas instead. Do not open the image files.
 5. The mockup canvas itself — skim for structure and frame labels. Do **not** try to reconstruct measurements from its inline styles; the README already carries them, and the canvas is a static prototype with drawn-open popovers and faked carets.
 
 While reading, collect three lists:
 
 - **Locked** — decisions the handoff states as final.
 - **Not drawn** — screens or states the handoff names as undesigned. These become the design doc's gap list and often the plan's open risks.
-- **Suspect** — anything that contradicts the base system, the plan, an earlier handoff, or itself. The bundle's own internal inconsistencies belong here too (a frame count that disagrees with the screenshot count, a token named two ways).
+- **Suspect** — anything that contradicts the base system, the plan, an earlier handoff, or itself. The bundle's own internal inconsistencies belong here too (a frame count that disagrees with the frame index, a token named two ways).
 
 ## Step 2: Pick the mode, then confirm the grounding
 
@@ -70,13 +70,13 @@ Confirm it before writing anything.
 
 ## Step 3: `docs/design-system.html`
 
-One self-contained HTML file. It holds everything design. After this skill runs, an implementer should never need to open the handoff bundle except to look at a picture.
+One self-contained HTML file. It holds everything design. After this skill runs, an implementer should be able to build from this document alone. The bundle stays available if someone wants to look at a picture.
 
 ### File contract
 
 - Self-contained: one `<style>` block in `<head>`, no external CSS, no JS, no webfonts.
 - Match the visual house style of the sibling plan docs (`docs/mvp-plan.html` etc.) — read one and reuse its palette, `.wrap` width, heading rhythm and `.note` / `.card` / `.tag` classes. The design doc is a *plan* document; it is not styled in the app's own design language, and confusing the two makes it unreadable.
-- Screenshots are **linked, never embedded** — relative paths into the handoff bundle (`handoff/screenshots/4a.jpg`). Base64 embedding bloats the file for no gain.
+- **No images.** The doc carries no screenshot links and no embedded pictures. Everything an implementer needs is written as text, tables and measurements. A screen that can only be explained by a picture is under-specified. Write the measurements instead.
 - Every measurement, hex, ramp step and size stays transcribable: state values as values, in tables, so they can be pasted into a `ResourceDictionary`, a theme file, or a token JSON without arithmetic.
 
 ### Section contract
@@ -91,7 +91,7 @@ Use these sections, in this order. Omit a section only when the handoff genuinel
 6. **Typography** — family, fallback, and a role table (role · size / weight · notes). Include the muted-opacity ladder.
 7. **Icons** — set, weight, the full used list, sizes by context, and any reserved icon (an AI-only marker, for example).
 8. **The application shell** — window, titlebar, navigation in both expanded and collapsed form, any flyout, status bar, and any persistent side rail. Every region with its width and fill token.
-9. **Screens** — one subsection per screen, in a stable order, each headed with its frame IDs, each linking its screenshots, each carrying layout, measurements, anatomy and states. This is the bulk of the document.
+9. **Screens** — one subsection per screen, in a stable order, each headed with its frame IDs, each carrying layout, measurements, anatomy and states. This is the bulk of the document.
 10. **Cross-cutting interaction contracts** — the numbered rules that hold on every screen (how a Suggest/assistant surface behaves, how a modal resolves, what may never auto-commit).
 11. **Motion and interaction states** — durations, hover/pressed/focus, keyboard map, reduced-motion behavior.
 12. **Accessibility.**
@@ -166,7 +166,7 @@ Act only on docs that exist. Show each intended edit before writing it. Never re
 The bundle stays frozen, with two exceptions:
 
 1. Append a short block to the bundle's `README.md`: this bundle has been consolidated into `docs/design-system.html` on <date>; the design doc is now authoritative; the `reference/` copies are historical and `docs/` wins over them.
-2. Fix outright factual errors inside the bundle README that would mislead a reader (a frame count that disagrees with the screenshots, a broken relative path). Nothing else.
+2. Fix outright factual errors inside the bundle README that would mislead a reader (a frame count that disagrees with the frame index, a broken relative path). Nothing else.
 
 Do not refresh `reference/` from `docs/`. The record of what the designer actually worked against is worth more than a self-contained bundle.
 
@@ -175,7 +175,7 @@ Do not refresh `reference/` from `docs/`. The record of what the designer actual
 Run these, and report the result of each:
 
 1. Open `docs/design-system.html` in a browser (or render it) and confirm it loads with no broken layout.
-2. Every screenshot link resolves. List any that do not.
+2. The design doc contains no `<img>` tag and no link to an image file.
 3. Every token value in the design doc matches `_ds/*/styles.css`. Any mismatch is a bug in the design doc, not in the CSS.
 4. Every screen named in the handoff README has a subsection; every subsection names its frame IDs.
 5. No plan doc still contains a phrase from the stale list ("design TBD", "theme placeholder", "visual design to be supplied", "mockups pending").
