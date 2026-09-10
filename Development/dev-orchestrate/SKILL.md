@@ -1,6 +1,6 @@
 ---
 name: dev-orchestrate
-description: Run the autonomous multi-phase build loop for any project using the PRD → dev-plan-phase → dev-create-progress → dev-execute pipeline. Preflights the repo and toolchain, then for each incomplete phase in docs/progress.html launches a planning sub-agent (dev-plan-phase + dev-create-progress) when the phase is unplanned and an execution sub-agent (dev-execute, which squash-merges and verifies), re-checking machine-verifiable gates between every step. Decides recoverable obstacles itself from the project docs and logs every choice, and stops hard only on user-owned or irreversible ones. Use whenever the user says to run the whole build, build all phases, run the autonomous build, orchestrate the phases, run the pipeline end to end, or resume a stopped multi-phase run.
+description: Run the autonomous multi-phase build loop for any project using the PRD → dev-plan-phase → dev-create-progress → dev-execute pipeline. Preflights the repo and toolchain, runs a pass/fail readiness review of the PRD, CLAUDE.md, design system, architecture and progress docs, then for each incomplete phase in docs/progress.html launches a planning sub-agent (dev-plan-phase + dev-create-progress) when the phase is unplanned and an execution sub-agent (dev-execute, which squash-merges and verifies), re-checking machine-verifiable gates between every step. Decides recoverable obstacles itself from the project docs and logs every choice, and stops hard only on user-owned or irreversible ones. Use whenever the user says to run the whole build, build all phases, run the autonomous build, orchestrate the phases, run the pipeline end to end, or resume a stopped multi-phase run.
 ---
 
 # Orchestrate an Autonomous Multi-Phase Build
@@ -44,12 +44,40 @@ Verify, in order. Checks 1–4 are environment checks you cannot fix: if one fai
    - **Green** — proceed.
    - **Red** — do not stop yet; diagnose once. Re-run the failing command a second time: if it now passes, it was flaky — log `DECISION: pre-existing red build was flaky, proceeding` with both outputs and proceed. If it fails again, decide whether the failure is *inside* the scope of the phases about to run (a file, module or test this run's phases touch, per their phase docs or the PRD): if it is, the first phase is expected to fix it — log `DECISION: pre-existing failure is in-scope for phase <N>, proceeding` and proceed. If it fails again **and** is out of scope, STOP: an unrelated broken default branch is not this run's to fix, and every later verify gate would inherit it.
    - **Build fails to compile** (not a test failure) — always STOP, whatever the scope.
-6. `docs/prd.html` and `docs/progress.html` exist. If `progress.html` is missing but phase docs exist, run `/dev-create-progress` first; if there is no PRD, STOP — this project is not on the pipeline.
+6. **Readiness review.** Check the five project documents below and print the result as a table. Print it on every run, including a resumed one.
+
+| # | Item | Path | Passes when | On FAIL |
+|---|---|---|---|---|
+| 1 | PRD | `docs/prd.html` | File exists, is non-empty, and holds at least one `<h3 class="phase" data-phase="…">` heading. | **STOP** |
+| 2 | CLAUDE.md | `CLAUDE.md` (repo root) | File exists, is non-empty, and has a `## Build & Test` section naming at least one runnable command. | Confirm |
+| 3 | Mockups | `docs/design-system.html` | File exists, is non-empty, and holds a **Handoff log** section. | Confirm |
+| 4 | Architecture | `docs/architecture.html` | File exists, is non-empty, and holds at least one `<h3 class="decision">`. | Confirm |
+| 5 | Progress | `docs/progress.html` | File exists, is non-empty, and holds at least one `<section class="phase">`. | **STOP** |
+
+Print one line per item, in this order, each as `PASS` or `FAIL` followed by the path. On a FAIL, give the reason on the same line: missing, empty, or which required marker was absent. On row 4, append the number of decisions still carrying `data-status="open"`. That count never changes row 4's PASS or FAIL — check 7 below acts on it.
+
+**Do not check whether phases are planned.** An unplanned phase is work this skill performs, not a readiness failure. A `progress.html` whose phases are all `not-planned` passes row 5.
+
+**One repair before row 5 fails.** If `docs/progress.html` is missing and phase docs exist under `docs/phases/`, run `/dev-create-progress` once, then re-check the row. This is the one-repair rule.
+
+**Acting on the result:**
+
+- **All five PASS** — say so in one line and go on to check 7. Ask nothing.
+- **Row 1 or row 5 FAIL** — STOP and report the table. A missing PRD leaves nothing to plan from. A missing `progress.html` leaves no phase index. Neither is confirmable, and no `--yes` style argument overrides them.
+- **Only rows 2, 3 or 4 FAIL** — print the table, state what each failed row costs, and ask the user once whether to continue. Wait for an explicit yes. Anything else is a STOP, and **no answer is a stop**. Never read silence as consent, and never proceed on your own because the run is unattended.
+
+State the cost of each confirmable FAIL in the prompt, in these words:
+
+- No `CLAUDE.md` — sub-agents receive no build, test, format or git rules, and will guess this project's conventions.
+- No `docs/design-system.html` — any UI phase is built without agreed visuals and will probably be redone.
+- No `docs/architecture.html` — phases are planned with no settled stack, storage or boundaries.
+
+On a confirmed continue, log one `DECISION:` line per failed row (`DECISION: user confirmed continue with <item> FAIL`) and repeat every one in the Final Report.
 7. Check `docs/architecture.html`. If it exists, list every `<h3 class="decision">` still carrying `data-status="open"`. An open decision is not automatically a stop — scope it first:
    - Work out which phases this invocation will actually run (the argument's bound, from the first incomplete phase onward). For each open slug, check whether any of those phases touches it — read the phase doc's Notes where one exists, and the PRD phase description where it does not. A slug is "touched" if the phase changes storage, boundaries, module layout, deployment, or the subsystem the decision names.
    - **No open slug is touched by this run** — proceed. Log `DECISION: open architecture slugs <list> are out of scope for phases <range>, proceeding`, and recommend `dev-architecture` in the Final Report before the phases that do touch them.
    - **Any open slug is touched** — STOP and name those slugs. That decision is the user's, and a phase planned on top of an open one builds the wrong thing.
-   - If the file does not exist, do not stop; note in your Final Report that phases were planned without a settled architecture, and recommend `dev-architecture` before the next build.
+   - If the file does not exist, row 4 of the readiness review already reported it and the user already confirmed. Do not stop and do not ask a second time. Note in your Final Report that phases were planned without a settled architecture, and recommend `dev-architecture` before the next build.
 
 ## The phase loop
 
@@ -149,7 +177,9 @@ These are the only stops. Everything else is a decision — see "Decide, don't s
 - **A blocker in `docs/progress.html` is user-owned** — it names a decision, a credential, an external service, or an architecture change → STOP and surface it verbatim. Stale and actionable blockers are cleared, not stopped on.
 - **A pre-existing failure on `<default-branch>` is out of scope for this run, or the project does not compile** → STOP.
 - **Anything requires an irreversible choice the docs don't answer** — deleting user data, changing repo settings, publishing, spending money, force-pushing, rewriting merged history → STOP and ask.
-- **Preflight environment failures** — no repo, wrong origin, `gh` not authenticated, missing toolchain, no PRD, no phase docs and no PRD phases → STOP. You cannot fix the user's machine.
+- **Readiness review row 1 or row 5 fails** — no PRD, or no `docs/progress.html` after the one allowed `/dev-create-progress` repair → STOP. These two are never confirmable.
+- **A readiness review row 2, 3 or 4 fails and the user does not explicitly confirm** → STOP. No answer is a stop.
+- **Preflight environment failures** — no repo, wrong origin, `gh` not authenticated, missing toolchain → STOP. You cannot fix the user's machine.
 - **A git failure you cannot attribute to doc edits** — network, diverged history, auth, or a pull that fails after one retry → STOP.
 - **A sub-agent reports that repairing `docs/progress.html` would lose a `done` / `skipped` mark or a blocker** → STOP and report exactly which marks were at risk. Completed work is never traded for a clean run.
 - **Any repair under the one-repair rule fails** → STOP, reporting both the obstacle and the failed repair.
@@ -158,6 +188,6 @@ When you stop early, report: which phase, which gate, the exact failing output, 
 
 ## Final report
 
-Summarize: phases completed this run (one line each with PR URL), final test results, what remains (phases left, or "all complete"), and — when the build is done — what's left for the user's final-touches pass.
+Summarize: the readiness review table exactly as it was printed at preflight, phases completed this run (one line each with PR URL), final test results, what remains (phases left, or "all complete"), and — when the build is done — what's left for the user's final-touches pass.
 
 Include a **Decisions** section listing every `DECISION:` line you logged, every `DECISION:` line a sub-agent returned, and every `ASSUMPTION:`, `MERGE-CONFLICT-RESOLVED:`, `RENUMBERED:`, `MERGED:`, `DERIVED:`, `DROPPED-DUPLICATE` and `DUPLICATE-KEPT` line the sub-agents returned. This section is the price of not stopping: the user gave up being asked, so they must be able to read every choice you made in one place and reverse any of them. Never omit it, and never summarize it down to "some minor decisions".

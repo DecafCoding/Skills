@@ -52,7 +52,7 @@ Ships with `SPEC.md` and `templates/` (concept, index, theme).
 
 ## [`Development/`](Development/README.md) — the AI development process
 
-A pipeline of nine skills that carries a vague app idea through interviews,
+A pipeline of eleven skills that carries a vague app idea through interviews,
 design handoffs, planning, and a PRD into an unattended plan → track → execute
 implementation loop. See the [Development README](Development/README.md) for the
 full pipeline, each skill, and the principles behind it.
