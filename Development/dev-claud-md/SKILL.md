@@ -292,7 +292,7 @@ After writing the file:
 3. Report any discrepancies found between `docs/architecture.html`, the PRD, and the repo — and which one you wrote.
 4. State plainly which source the stack and pattern came from: `docs/architecture.html`, the PRD, or the house default. If the default was used because no architecture doc exists, say so and mention `dev-architecture`.
 5. Note assumptions made where the sources were silent, and any decision left out because it was `data-status="open"`.
-6. Suggest next steps — typically `/dev-plan-phase` for the next phase, so the phase work runs under these conventions.
+6. Suggest the next step: run `/dev-create-progress` to build `docs/progress.html` from the PRD, so every phase run afterward inherits these conventions. Do not suggest `/dev-plan-phase` here.
 
 ## Notes
 

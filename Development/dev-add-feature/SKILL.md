@@ -20,7 +20,7 @@ If the user asks for code during the interview, say that code is outside this sk
 Read the ground truth before you ask anything. Do not skip this step. Every question must be informed by the actual system.
 
 1. **The plan.** Locate and read the existing planning docs. Those are `docs/mvp-plan.html`, `docs/prd.html`, phase docs under `docs/phases/`, `docs/progress.html`, README, or whatever the user points at. If the app exists only as a plan, that plan is the ground truth. **Note which of these exist.** You need that list again at the end, when the plan docs get updated to include this feature.
-2. **The competitive scan.** Check for `docs/competitive-scan.html`. If `dev-initial-interview` ran, this holds the Required, Top 10 and Other buckets with a coverage badge on every row. Read it. It is the backlog this feature may already sit in. The badges say what is already built.
+2. **The competitive scan.** Check for `docs/competitive-scan.html`. If `dev-competitive-scan` ran, this holds the Required, Top 10 and Other buckets with a coverage badge on every row. Read it. It is the backlog this feature may already sit in. The badges say what is already built.
 3. **The architecture.** Check for `docs/architecture.html`. If `dev-architecture` ran, this is the settled technical design. It covers stack, storage, pattern, module layout, boundaries, state and failure, non-functional targets and deployment. Read it in full. Every `<h3 class="decision">` in it is a constraint this feature must fit. The `data-reversible` value tells you what a misfit would cost to undo. This file is the authority for branch 7.
 4. **The repo.** Survey the code if there is any. Look at entry points, module layout, data model and migrations, routing or command surface, config and tests. Read the parts the feature will plausibly touch. Read enough to ask sharp questions. Do not read everything.
 5. **Conventions.** Find how this codebase already does the thing the feature needs. That covers persistence, auth, background work, error handling and UI composition. New features should follow existing patterns unless there is a reason to depart. Where the repo and `docs/architecture.html` disagree, say so. One of them is wrong. Ask the user which one. Do not guess.
@@ -51,7 +51,7 @@ Once a feature is chosen, the scan's job as an input is done. It still gets upda
 
 Run the normal branch order against the chosen feature. Stop referring back to what competitors do. That is market evidence. Past this point the existing app and its users are the better authority.
 
-Say so if the scan is stale enough to matter. Staleness means the app has changed a lot, or the research is about a year old. Offer to refresh it before choosing. Never refresh silently.
+Say so if the scan is stale enough to matter. Staleness means the app has changed a lot, or the research is about a year old. Offer to run `/dev-competitive-scan` to refresh it before choosing. Never refresh silently.
 
 ## Method
 
@@ -233,7 +233,7 @@ Only `b-no` rows are offerable candidates. A `b-never` row is permanently off th
 - **The scope line moved something out.** A capability this interview deferred keeps or gets `b-no`. A capability explicitly ruled out gets `b-never`, with the reason in its note.
 - **The scan is stale.** You flagged it in Step 0.5 and the user declined a refresh. Still record this feature's outcome. Note in the header meta that the research predates it. Never refresh silently here. Refreshing is research. This step is bookkeeping.
 
-Three standing rules, inherited from `dev-initial-interview`:
+Three standing rules, inherited from `dev-competitive-scan`:
 
 - **Never delete a row.** Its sentiment and comparables are the evidence behind the decision. Deleting them makes the decision unauditable.
 - **Never re-rank the Top 10.** The ranking records what the market said at research time. When events overtake a row's rank, say so in its `.cov` note.

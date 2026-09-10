@@ -8,21 +8,28 @@ machine-checkable gates.
 
 ## The pipeline
 
-1. **[`dev-initial-interview`](dev-initial-interview/SKILL.md)** — a
-   branch-by-branch requirements interview that turns a vague app idea into an
-   agreed MVP plan. No code, ever. Includes a competitive scan of comparable
-   apps, inventoried into Required, Top 10, and Other — only Required folds into
-   MVP scope; the rest becomes a durable backlog.
-   *Outputs: MVP plan + `docs/competitive-scan.html`.*
+1. **[`dev-competitive-scan`](dev-competitive-scan/SKILL.md)** — a
+   web-research scan of comparable apps. Inventories what each one ships and
+   what its users complain about, sorted into Required, Top 10, and Other —
+   only Required feeds MVP scope; the rest becomes a durable backlog. Makes no
+   scope decisions and writes no code. Re-run it to refresh a stale scan.
+   *Output: `docs/competitive-scan.html`.*
 
-2. **[`dev-add-feature`](dev-add-feature/SKILL.md)** — the same kind
+2. **[`dev-initial-interview`](dev-initial-interview/SKILL.md)** — a
+   branch-by-branch requirements interview that turns a vague app idea into an
+   agreed MVP plan. No code, ever. Reads the competitive scan and argues the
+   scope line against it; if the scan is missing it asks whether to continue
+   without one. Marks every scan row against the finished plan.
+   *Outputs: `docs/mvp-plan.html` + marked `docs/competitive-scan.html`.*
+
+3. **[`dev-add-feature`](dev-add-feature/SKILL.md)** — the same kind
    of interview for something that already exists. Grounds itself in the current
    plan, the repo, and the competitive scan before asking anything, then offers
    the Top 10 as a ranked menu with a recommendation. Chosen entries are marked
    planned so they aren't re-offered. Repeat per feature.
    *Outputs: feature plan + updated MVP plan.*
 
-3. **[`dev-ui-update`](dev-ui-update/SKILL.md)** — folds a visual
+4. **[`dev-ui-update`](dev-ui-update/SKILL.md)** — folds a visual
    design handoff (HTML mockups, design tokens, screenshots, a handoff README)
    into the planning docs. Authors or amends `docs/design-system.html` as the
    single source of truth for everything design, surfaces every conflict with
@@ -33,7 +40,7 @@ machine-checkable gates.
    the first handoff and every later revision.
    *Outputs: `docs/design-system.html` + reconciled plan docs.*
 
-4. **[`dev-architecture`](dev-architecture/SKILL.md)** — a
+5. **[`dev-architecture`](dev-architecture/SKILL.md)** — a
    branch-by-branch architecture interview that turns the settled MVP scope into
    an agreed technical design. Runs on a scope-frozen gate, walks the design tree
    in dependency order — stack, storage, pattern, module layout, boundaries,
@@ -45,7 +52,7 @@ machine-checkable gates.
    fit. Writes no code.
    *Output: `docs/architecture.html`.*
 
-5. **[`dev-create-prd`](dev-create-prd/SKILL.md)** — turns the plans
+6. **[`dev-create-prd`](dev-create-prd/SKILL.md)** — turns the plans
    into a standalone HTML PRD with development phases and milestones. Runs a
    sufficiency check on the source material first, and cites the companion docs
    rather than re-deciding them — `docs/architecture.html` owns the stack and
@@ -53,7 +60,7 @@ machine-checkable gates.
    a strict HTML contract that the downstream skills parse.
    *Output: `docs/prd.html`.*
 
-6. **[`dev-claud-md`](dev-claud-md/SKILL.md)** — distills the
+7. **[`dev-claud-md`](dev-claud-md/SKILL.md)** — distills the
    architecture doc, the PRD, and the repo into the project's `CLAUDE.md`, so
    every downstream agent run inherits the same conventions, commands, and
    architecture notes. Stack-adaptive, with a .NET/C# profile as the default —
@@ -61,27 +68,27 @@ machine-checkable gates.
    silently overwritten.
    *Output: `CLAUDE.md` at the repo root.*
 
-7. **[`dev-create-progress`](dev-create-progress/SKILL.md)** —
+8. **[`dev-create-progress`](dev-create-progress/SKILL.md)** —
    mechanically aggregates the phase docs and the PRD into
    `docs/progress.html`, the machine-readable index every later run reads to find
    the next eligible task. Purely mechanical; makes no design decisions. Re-run
    whenever a phase doc changes.
    *Output: `docs/progress.html`.*
 
-8. **[`dev-plan-phase`](dev-plan-phase/SKILL.md)** — expands one PRD
+9. **[`dev-plan-phase`](dev-plan-phase/SKILL.md)** — expands one PRD
    phase into a context-rich, fully tasked phase doc via codebase analysis and
    external research. This skill is the slug and task authority: it picks the
    phase slug, branch name, and canonical task list, and writes no implementation
    code itself.
    *Output: `docs/phases/phase-<N>-<slug>.html`.*
 
-9. **[`dev-execute`](dev-execute/SKILL.md)** — implements a phase one
+10. **[`dev-execute`](dev-execute/SKILL.md)** — implements a phase one
    validated task at a time, then finishes end-to-end: branch, commits, PR
    opened, squash-merged, default branch synced and re-verified green. Resolves
    the next eligible phase from `docs/progress.html` on its own.
    *Output: a merged phase + updated progress tracking.*
 
-10. **[`dev-orchestrate`](dev-orchestrate/SKILL.md)** — runs the whole
+11. **[`dev-orchestrate`](dev-orchestrate/SKILL.md)** — runs the whole
    implementation loop autonomously. Preflights the repo and toolchain, then for
    each incomplete phase launches a planning sub-agent and an execution
    sub-agent, re-checking machine-verifiable gates itself between every step and
@@ -89,9 +96,9 @@ machine-checkable gates.
    optional bound (`2`, `through 4`).
    *Output: completed phases, one merged PR each, plus a final report.*
 
-Steps 7–9 form the implementation loop, repeated until every phase is complete —
-either by hand or run end-to-end by step 10. The feature loop (step 2) and the
-design loop (step 3) can also be re-entered against a working app, folding new
+Steps 8–10 form the implementation loop, repeated until every phase is complete —
+either by hand or run end-to-end by step 11. The feature loop (step 3) and the
+design loop (step 4) can also be re-entered against a working app, folding new
 features and new designs back into the plan docs.
 
 ## Core principles
