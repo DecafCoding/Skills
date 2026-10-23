@@ -101,6 +101,17 @@ either by hand or run end-to-end by step 11. The feature loop (step 3) and the
 design loop (step 4) can also be re-entered against a working app, folding new
 features and new designs back into the plan docs.
 
+## Shortcut: setup in one call
+
+**[`dev-setup`](dev-setup/SKILL.md)** runs steps 6, 7 and 8 in one call:
+`dev-create-prd`, then `dev-claud-md`, then `dev-create-progress`. It first
+checks that steps 1, 2, 4 and 5 ran, by looking for the marker each one writes
+in its output file. A missing MVP plan stops the run. Any other missing file
+gets one question that asks whether to continue. Between steps it checks each
+output before it runs the next one, and it stops on a failed check. It usually
+asks nothing. It ends with one report and points to `dev-orchestrate`.
+*Outputs: `docs/prd.html`, `CLAUDE.md`, `docs/progress.html`.*
+
 ## Core principles
 
 - **No code before the plan.** The interview, design, and planning skills never

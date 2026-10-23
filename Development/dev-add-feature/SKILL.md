@@ -1,6 +1,6 @@
 ---
 name: dev-add-feature
-description: Run a relentless, branch-by-branch interview that turns a rough feature idea into a complete integration plan for an existing app. It is grounded in the current plan, the settled architecture at docs/architecture.html, the repo, and any prior competitive scan at docs/competitive-scan.html. It checks the feature against the architecture instead of redesigning it. It hands back to dev-architecture for an amendment when the feature does not fit. It then folds the agreed feature back into whichever plan docs exist (docs/mvp-plan.html, docs/prd.html, docs/progress.html, docs/competitive-scan.html). It never writes code. Use it whenever the user wants to add, extend, bolt on, "think through", or decide what to build next for something that already exists or is already planned, even if they never say the word "interview". It is the companion to dev-initial-interview, which covers net-new applications. Use dev-add-feature once there is an existing plan or codebase to fit into.
+description: Run a relentless, branch-by-branch interview that turns a rough feature idea into a complete integration plan for an existing app. It is grounded in the current plan, the settled architecture at docs/architecture.html, the repo, and any prior competitive scan at docs/competitive-scan.html. It checks the feature against the architecture instead of redesigning it. It hands back to dev-architecture for an amendment when the feature does not fit. It writes the agreed feature to a docs/feature-*.html brief and folds it into whichever plan docs exist (docs/mvp-plan.html, docs/prd.html, docs/progress.html, docs/competitive-scan.html). It never writes code. Use it whenever the user wants to add, extend, bolt on, "think through", or decide what to build next for something that already exists or is already planned, even if they never say the word "interview". It is the companion to dev-initial-interview, which covers net-new applications.
 ---
 
 # Dev Add Feature
@@ -158,20 +158,24 @@ Keep a running list of settled decisions and open branches. Show it after a majo
 
 ## Finishing: the feature plan document
 
-The interview ends when every branch is closed and the user agrees the picture is complete. Then write the plan as an **OKF-HTML concept**. Follow the `okf-html-library` skill for the mechanics. That covers the library root, the `okf-meta` block, the relative `theme.css` link, `templates/concept.html` and index regeneration. Do not hand-write styling. Styling lives in `theme.css`.
+The interview ends when every branch is closed and the user agrees the picture is complete. Then write the plan to **`docs/feature-<slug>.html`**, beside the other plan docs. `<slug>` is the feature name in kebab-case. Create `docs/` if it does not exist. If a file is already there, say what would change and ask before you overwrite it.
 
-Metadata conventions for this document:
+The path pattern is fixed on purpose. `dev-architecture`, `dev-create-prd` and `dev-ui-update` look for feature briefs at `docs/feature-*.html`. A brief with another name is never found.
 
-- `type`: `Feature Plan`. Reuse the library's existing type if one already fits.
-- `title`: the feature name
-- `description`: one line naming the feature and the app it extends
-- `tags`: the app name, plus the areas touched
-- `resource`: the repo or plan URI if there is one. Otherwise `null`.
+**Format.** Emit a standalone HTML document. Use the same scaffold and element conventions as `dev-create-prd`. That means a doctype, a `<head>` with the embedded `<style>` block, one `<h2>` per section, `<h3>` for subsections, real `<table>` markup, `<pre><code>` for examples, and `<ul class="checklist">` with `data-checked` for the scope lists. Mark scope items with `data-checked="true"` for in scope and `data-checked="false"` for out of scope.
 
-Body sections, as semantic HTML:
+**Three rules for the document.** These are the same rules `dev-architecture` and `dev-initial-interview` apply.
+
+1. **Self-contained HTML.** It renders with no network. Embed styles in a `<style>` block. Use no external stylesheet, no CDN script, no remote font and no hotlinked image.
+2. **No memory.** Every decision traces to this conversation, the plan docs or the repo. See "Clean slate".
+3. **Closed doc set.** Links point only to files inside `docs/`.
+
+Start the document with an `<h1>` naming the feature, then a `<p class="meta">` with the date and the app it extends.
+
+**Sections, in order:**
 
 1. Summary and motivation
-2. Fit with the existing application, with links to related concepts where the library has them
+2. Fit with the existing application, with links to the related plan docs in `docs/`
 3. Scope. In, deferred, never
 4. Blast radius. The concrete list of touched components
 5. Data model changes, and the migration and rollback approach
@@ -195,7 +199,7 @@ Check for each doc and act only on the ones that exist. If none exist, say so an
 
 **1. `docs/mvp-plan.html`, if it exists.**
 
-- The feature is in scope for the MVP. Add it to the in-scope checklist (`<li data-checked="true">`). Update the sections it materially changes. Those are data model, interfaces, milestones and done criteria. Write one or two lines per section plus a link to the feature-plan concept. Do not restate the whole feature plan.
+- The feature is in scope for the MVP. Add it to the in-scope checklist (`<li data-checked="true">`). Update the sections it materially changes. Those are data model, interfaces, milestones and done criteria. Write one or two lines per section plus a link to the feature brief at `docs/feature-<slug>.html`. Do not restate the whole feature plan.
 - The feature is deferred past the MVP. Add it to the deferred checklist (`<li data-checked="false">`) with a link. Change nothing else. Deferred features do not get to edit the data model.
 - In both cases, append an entry to the `Amendments` section. Give the date, the feature name, what changed, and the fact that `dev-add-feature` changed it. If the doc has no `Amendments` section, add one.
 
@@ -228,7 +232,7 @@ The scan is the standing backlog and the market evidence behind it. If it still 
 
 Only `b-no` rows are offerable candidates. A `b-never` row is permanently off the menu. Update the badge, the note and the attributes together.
 
-- **The feature was already in the scan.** Change its badge to `b-in` with the phase number. Use `b-part` instead if this feature covers only part of what the row describes. Rewrite its `.cov` note to say what now ships and what still does not. Link the feature-plan concept from the note. Keep the row in its bucket at its existing rank.
+- **The feature was already in the scan.** Change its badge to `b-in` with the phase number. Use `b-part` instead if this feature covers only part of what the row describes. Rewrite its `.cov` note to say what now ships and what still does not. Link the feature brief at `docs/feature-<slug>.html` from the note. Keep the row in its bucket at its existing rank.
 - **The feature was not in the scan.** Add a row in the bucket it belongs to, in that bucket's row shape, badged the same way. Note that it came from this interview instead of from research. The scan is meant to be the complete inventory. A feature that bypassed it leaves a hole.
 - **The scope line moved something out.** A capability this interview deferred keeps or gets `b-no`. A capability explicitly ruled out gets `b-never`, with the reason in its note.
 - **The scan is stale.** You flagged it in Step 0.5 and the user declined a refresh. Still record this feature's outcome. Note in the header meta that the research predates it. Never refresh silently here. Refreshing is research. This step is bookkeeping.

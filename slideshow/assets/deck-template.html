@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{{DECK_TITLE}}</title>
+
+    <!-- Reveal.js core + white theme as base (customized below) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css" id="theme">
+
+    <!-- Code highlighting theme (used if code blocks appear) — light theme from highlight.js -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github.css">
+
+    <!-- Clean-minimal-light custom theme -->
+    <style>
+        :root {
+            --accent: #c8553d;        /* warm terracotta accent */
+            --accent-soft: #f2d5cc;
+            --ink: #1a1a1a;
+            --ink-soft: #4a4a4a;
+            --paper: #fdfdfc;
+            --paper-soft: #f4f2ee;
+            --rule: #d8d4cc;
+            --font-sans: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            --font-serif: "Charter", "Iowan Old Style", Georgia, serif;
+            --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+        }
+
+        .reveal { font-family: var(--font-sans); color: var(--ink); }
+        .reveal .slides { text-align: left; }
+        .reveal .slides section { padding: 0 40px; }
+
+        body, .reveal, .reveal .backgrounds { background: var(--paper); }
+
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+            font-family: var(--font-sans);
+            font-weight: 700;
+            color: var(--ink);
+            text-transform: none;
+            letter-spacing: -0.015em;
+            margin-bottom: 0.5em;
+        }
+        .reveal h1 { font-size: 2.4em; line-height: 1.1; }
+        .reveal h2 { font-size: 1.6em; line-height: 1.15; }
+        .reveal h3 { font-size: 1.2em; line-height: 1.25; color: var(--ink-soft); }
+
+        .reveal p { color: var(--ink-soft); line-height: 1.5; font-size: 0.85em; }
+        .reveal strong { color: var(--ink); }
+        .reveal em { font-style: italic; color: var(--ink); }
+
+        .reveal ul, .reveal ol { display: block; margin-left: 1em; }
+        .reveal ul li, .reveal ol li { margin: 0.35em 0; color: var(--ink-soft); font-size: 0.85em; line-height: 1.45; }
+        .reveal ul li::marker { color: var(--accent); }
+
+        .reveal a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-soft); }
+
+        .reveal blockquote {
+            border-left: 3px solid var(--accent);
+            background: transparent;
+            padding: 0.4em 0 0.4em 1em;
+            font-family: var(--font-serif);
+            font-style: italic;
+            font-size: 1.1em;
+            color: var(--ink);
+            margin: 0.5em 0;
+            box-shadow: none;
+            width: 100%;
+        }
+
+        .reveal pre {
+            box-shadow: none;
+            border: 1px solid var(--rule);
+            border-radius: 4px;
+            background: var(--paper-soft);
+            font-size: 0.6em;
+            width: 100%;
+        }
+        .reveal code { font-family: var(--font-mono); }
+
+        /* Title slide styling */
+        .reveal .slide-title {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 0 60px !important;
+        }
+        .reveal .slide-title h1 {
+            font-size: 3em;
+            max-width: 14em;
+        }
+        .reveal .slide-title .subtitle {
+            color: var(--ink-soft);
+            font-size: 1em;
+            margin-top: 0.5em;
+            max-width: 30em;
+        }
+        .reveal .slide-title .meta {
+            margin-top: 2em;
+            font-size: 0.7em;
+            color: var(--ink-soft);
+            border-top: 1px solid var(--rule);
+            padding-top: 1em;
+            max-width: 25em;
+        }
+
+        /* Section divider slide */
+        .reveal .slide-section-divider {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+        }
+        .reveal .slide-section-divider .eyebrow {
+            color: var(--accent);
+            font-size: 0.7em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 0.5em;
+        }
+        .reveal .slide-section-divider h2 {
+            font-size: 2.6em;
+            max-width: 15em;
+        }
+
+        /* Visual placeholder block */
+        .visual-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--paper-soft);
+            border: 1px dashed var(--rule);
+            border-radius: 6px;
+            padding: 2em 1.5em;
+            min-height: 200px;
+            margin: 0.5em 0;
+        }
+        .visual-placeholder .visual-desc {
+            font-family: var(--font-serif);
+            font-style: italic;
+            color: var(--ink-soft);
+            font-size: 0.75em;
+            line-height: 1.5;
+            text-align: center;
+            max-width: 30em;
+        }
+        .visual-placeholder .visual-desc::before {
+            content: "visual — ";
+            color: var(--accent);
+            font-style: normal;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            text-transform: uppercase;
+            font-size: 0.8em;
+            letter-spacing: 0.1em;
+        }
+
+        /* Two-column layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2em;
+            align-items: start;
+        }
+        .two-col.narrow-left { grid-template-columns: 1fr 2fr; }
+        .two-col.narrow-right { grid-template-columns: 2fr 1fr; }
+
+        /* Stat callout */
+        .stat {
+            text-align: center;
+            padding: 1em 0;
+        }
+        .stat .stat-number {
+            font-size: 4em;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1;
+            letter-spacing: -0.03em;
+        }
+        .stat .stat-label {
+            color: var(--ink-soft);
+            font-size: 0.8em;
+            margin-top: 0.5em;
+        }
+
+        /* Progress bar on bottom */
+        .reveal .progress { color: var(--accent); }
+
+        /* Slide number */
+        .reveal .slide-number {
+            background: transparent;
+            color: var(--ink-soft);
+            font-family: var(--font-sans);
+            font-size: 0.7em;
+        }
+
+        /* Mermaid diagram styling */
+        .mermaid { text-align: center; }
+
+        /* Print / PDF tweaks */
+        @media print {
+            .visual-placeholder { border-color: #999; }
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!--
+                TEMPLATE NOTES FOR CLAUDE (remove these comments in the final deck):
+
+                SLIDE PATTERNS — use these as building blocks:
+
+                1. TITLE SLIDE (first slide)
+                2. SECTION DIVIDER (between major sections)
+                3. STANDARD CONTENT (title + bullets)
+                4. CONTENT + VISUAL (two-column: text on left, visual placeholder on right)
+                5. VISUAL-DOMINANT (large visual placeholder with minimal text)
+                6. QUOTE
+                7. STAT CALLOUT (large number)
+                8. MERMAID DIAGRAM
+                9. CODE BLOCK
+                10. CLOSING (takeaways + next steps)
+
+                Each slide should use <section data-markdown> when the content is
+                markdown-friendly. Drop to raw HTML only when custom layout is needed
+                (title slide, stat callouts, two-column, etc.).
+
+                Speaker notes: <aside class="notes">...</aside> inside each section.
+            -->
+
+            <!-- ====================================================== -->
+            <!-- 1. TITLE SLIDE                                         -->
+            <!-- ====================================================== -->
+            <section>
+                <div class="slide-title">
+                    <h1>{{DECK_TITLE}}</h1>
+                    <div class="subtitle">{{DECK_SUBTITLE}}</div>
+                    <div class="meta">
+                        Source: {{SOURCE_DESCRIPTION}}<br>
+                        Audience: {{AUDIENCE}}
+                    </div>
+                </div>
+                <aside class="notes">
+                    Speaker notes for the title slide. Introduce the talk, set expectations,
+                    mention who this is for. For transcript-sourced decks, preserve the
+                    speaker's opening in voice.
+                </aside>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- 2. SECTION DIVIDER                                     -->
+            <!-- ====================================================== -->
+            <section>
+                <div class="slide-section-divider">
+                    <div class="eyebrow">Part One</div>
+                    <h2>{{SECTION_TITLE}}</h2>
+                </div>
+                <aside class="notes">
+                    Brief transition into this section — why it matters, what's coming.
+                </aside>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- 3. STANDARD CONTENT (markdown)                         -->
+            <!-- ====================================================== -->
+            <section data-markdown>
+                <textarea data-template>
+                    ## Slide title
+
+                    - First key point stated concisely
+                    - Second key point with a touch of specificity
+                    - Third key point that builds on the previous
+                    - Optional fourth point if it truly belongs
+
+                    Note:
+                    Speaker notes in markdown go under a `Note:` heading. Keep these
+                    conversational — they're what the presenter says out loud.
+                </textarea>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- 4. CONTENT + VISUAL (two-column)                       -->
+            <!-- ====================================================== -->
+            <section>
+                <h2>Slide title</h2>
+                <div class="two-col">
+                    <div>
+                        <ul>
+                            <li>Key point one</li>
+                            <li>Key point two</li>
+                            <li>Key point three</li>
+                        </ul>
+                    </div>
+                    <div class="visual-placeholder">
+                        <div class="visual-desc">
+                            Concrete visual description here — what the image should show,
+                            the mood, any specific framing or elements that matter.
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Speaker notes for this slide.
+                </aside>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- 5. VISUAL-DOMINANT                                     -->
+            <!-- ====================================================== -->
+            <section>
+                <div class="visual-placeholder" style="min-height: 400px;">
+                    <div class="visual-desc">
+                        A dominant, large visual. Use when the image itself carries the
+                        message — an emotional anchor, a striking example, or the opening
+                        image of a section.
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 1em;">Short caption or pull quote.</p>
+                <aside class="notes">
+                    This is where the speaker lingers. Let the image do the work.
+                </aside>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- 6. QUOTE                                               -->
+            <!-- ====================================================== -->
+            <section data-markdown>
+                <textarea data-template>
+                    > A memorable quote pulled directly from the source that captures
+                    > the essence of this moment.
+
+                    — Attribution, context
+
+                    Note:
+                    Why this quote matters. What led to it. What it sets up.
+                </textarea>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- 7. STAT CALLOUT                                        -->
+            <!-- ====================================================== -->
+            <section>
+                <div class="stat">
+                    <div class="stat-number">87%</div>
+                    <div class="stat-label">of users who encountered this bug never reported it</div>
+                </div>
+                <aside class="notes">
+                    Context for the stat. Where it comes from. Why it's surprising or
+                    load-bearing in the argument.
+                </aside>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- 8. MERMAID DIAGRAM                                     -->
+            <!-- ====================================================== -->
+            <section>
+                <h2>Flow diagram</h2>
+                <div class="mermaid">
+                    flowchart LR
+                        A[Source] --> B[Structure]
+                        B --> C[Visuals]
+                        C --> D[Render]
+                        B -.review.-> B
+                        C -.review.-> C
+                </div>
+                <aside class="notes">
+                    Walk through the flow step by step.
+                </aside>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- 9. CODE BLOCK                                          -->
+            <!-- ====================================================== -->
+            <section data-markdown>
+                <textarea data-template>
+                    ## Example: defining a skill
+
+                    ```yaml
+                    ---
+                    name: slideshow
+                    description: Turn a source document into a Reveal.js deck.
+                    ---
+                    ```
+
+                    Note:
+                    Annotate the snippet — what's important, what to skip over.
+                </textarea>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- 10. CLOSING                                            -->
+            <!-- ====================================================== -->
+            <section data-markdown>
+                <textarea data-template>
+                    ## Takeaways
+
+                    - The first thing you should remember
+                    - The second thing that ties it together
+                    - The one concrete next step
+
+                    Note:
+                    Land the plane. Remind the audience of the throughline. Invite questions.
+                </textarea>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- Reveal.js core and plugins -->
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+
+    <!-- Mermaid for inline diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+
+    <script>
+        // Initialize Mermaid with a light theme matching the deck
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#f4f2ee',
+                primaryTextColor: '#1a1a1a',
+                primaryBorderColor: '#c8553d',
+                lineColor: '#4a4a4a',
+                fontFamily: 'Inter, sans-serif'
+            }
+        });
+
+        // Initialize Reveal
+        Reveal.initialize({
+            hash: true,
+            slideNumber: 'c/t',
+            controls: true,
+            progress: true,
+            center: false,
+            transition: 'fade',
+            transitionSpeed: 'fast',
+            width: 1100,
+            height: 720,
+            margin: 0.08,
+            plugins: [RevealMarkdown, RevealHighlight, RevealNotes]
+        }).then(() => {
+            // Render any mermaid diagrams after Reveal is ready
+            mermaid.run({ querySelector: '.mermaid' });
+        });
+    </script>
+</body>
+</html>
